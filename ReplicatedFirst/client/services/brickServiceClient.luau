@@ -77,6 +77,10 @@ return {
 				if not camera then
 					return
 				end
+
+
+				------------------- SANDBOX -------------------
+				
 				
 				--# raycast
 				--[[
@@ -86,30 +90,34 @@ return {
 				local params = RaycastParams.new()
 				params.ExcludeInstances = { character, camera, self.brickPreview }
 				
+				--# get mouse direction and clamp target to buildPreviewRadius
+				local mouseDirection: Vector3 = (self.mouse.Hit.Position - camera.CFrame.Position).Unit
+				local targetPoint: Vector3 = camera.CFrame.Position + mouseDirection * config.buildPreviewRadius
+				
+				local mouseHit: Vector3 = self.mouse.Hit.Position
+				
+				-- first try camera raycast
 				local result = workspace:Raycast(
 					camera.CFrame.Position,
-					(self.mouse.Hit.Position - camera.CFrame.Position).Unit * config.buildPreviewRadius,
+					mouseDirection * config.buildPreviewRadius,
 					params
 				)
-				
+					
+				-- if that missed, try downward
 				if not result or not result.Instance then
-					if self.brickPreview then
-						local mouseDirection = (self.mouse.Hit.Position - camera.CFrame.Position).Unit
-						local clampedPos = camera.CFrame.Position + mouseDirection * config.buildPreviewRadius
-
-						local offset = clampedPos - root.Position
-						if offset.Magnitude >= config.buildRadius then
-							self.brickPreview.Color = config.buildInvalidColor
-						else
-							self.brickPreview.Color = brickPart.Color
-						end
-
-						self.brickPreview.Position = clampedPos
-					end
-					return
+					local groundOrigin = Vector3.new(mouseHit.X, root.Position.Y + 50, mouseHit.Z)
+					result = workspace:Raycast(groundOrigin, Vector3.new(0, -100, 0), params)
 				end
 				
-				local resultPos: Vector3 = result.Position
+				if not result or result and not result.Instance then
+					return
+				end
+
+				local resultPos = result.Position + result.Normal * (self.brickPreview.Size / 2)
+				
+				
+				-----------------------------------------------
+				
 				
 				--# color
 				--# ( based on distance )

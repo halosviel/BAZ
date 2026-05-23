@@ -41,25 +41,39 @@ return {
 		
 		--# give player brick on join
 		--# naming conventions: brickTool, brickPart
-		game.Players.PlayerAdded:Connect(function(player: Player)
+		local function onCharacterAdded(character: Model)
+			local player = game.Players:GetPlayerFromCharacter(character)
+			
 			dataService:read(player, "brickSkin"):andThen(function(brickSkin: string)
 				local brickPart: Part? = game.ReplicatedFirst.shared.bricks:FindFirstChild(brickSkin)
 				if not brickPart then
 					console.warn(`Brick "{brickSkin}" not found. Unable to give to @{tostring(player)}`)
 					return
 				end
-				
+
 				local brickTool = Instance.new("Tool")
 				brickTool.Name = "Brick" --# WARNING: The client yields for this string. Update client too when changing!
 				brickTool.CanBeDropped = false
-				
+
 				brickPart = brickPart:Clone()
 				brickPart.Name = "Handle"
 				brickPart.Anchored = false
 				brickPart.Parent = brickTool
-				
+
 				brickTool.Parent = player.Backpack
 			end)
-		end)
+		end
+		
+		local function onPlayerAdded(player: Player)
+			player.CharacterAdded:Connect(onCharacterAdded)
+			if player.Character then
+				onCharacterAdded(player.Character)
+			end
+		end
+		
+		game.Players.PlayerAdded:Connect(onPlayerAdded)
+		for _, player: Player in game.Players:GetPlayers() do
+			onPlayerAdded(player)
+		end
 	end,
 } :: self
