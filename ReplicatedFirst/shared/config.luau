@@ -8,6 +8,8 @@
 ]=]
 
 return {
+	--# build system
+	gridSize = 1, -- snap
 	buildRadius = 15, -- how far from the HRP a player can build from
 	buildPreviewRadius = 45, -- how far a build preview will travel (do not let it go into void)
 	buildPreviewTransparency = 0.5,

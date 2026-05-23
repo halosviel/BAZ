@@ -59,19 +59,19 @@ return {
 			
 			--# generate preview
 			self.renderCon = game.RunService.RenderStepped:Connect(function()
-
+				
 				--# validation
-
+				
 				local character: Model? = game.Players.LocalPlayer.Character
 				if not character then
 					return
 				end
-
+				
 				local root: Part? = character:FindFirstChild("HumanoidRootPart")
 				if not root then
 					return
 				end
-
+				
 				local camera: Camera? = workspace.CurrentCamera
 				if not camera then
 					return
@@ -84,23 +84,26 @@ return {
 				]]
 				local params = RaycastParams.new()
 				params.ExcludeInstances = { character, camera, self.brickPreview }
-
+				
 				local result = workspace:Raycast(
 					camera.CFrame.Position,
 					(self.mouse.Hit.Position - camera.CFrame.Position).Unit * config.buildPreviewRadius,
 					params
 				)
 				
-				if not result then
+				if not result or not result.Instance then
 					if self.brickPreview then
-						self.brickPreview.Position = Vector3.new(0, 0, 0)
-					end
-					return
-				end
-				
-				if not result.Instance then
-					if self.brickPreview then
-						self.brickPreview.Position = Vector3.new(0, 0, 0)
+						local mouseDirection = (self.mouse.Hit.Position - camera.CFrame.Position).Unit
+						local clampedPos = camera.CFrame.Position + mouseDirection * config.buildPreviewRadius
+
+						local offset = clampedPos - root.Position
+						if offset.Magnitude >= config.buildRadius then
+							self.brickPreview.Color = config.buildInvalidColor
+						else
+							self.brickPreview.Color = brickPart.Color
+						end
+
+						self.brickPreview.Position = clampedPos
 					end
 					return
 				end
@@ -116,16 +119,20 @@ return {
 						self.brickPreview.Color = brickPart.Color
 					end
 				end
-
-				--# place preview
+				
+				--# place preview in rounded pos
 				
 				if self.brickPreview then
-					self.brickPreview.Position = resultPos
+					self.brickPreview.Position = Vector3.new(
+						math.round(resultPos.X / config.gridSize) * config.gridSize,
+						math.round(resultPos.Y / config.gridSize) * config.gridSize,
+						math.round(resultPos.Z / config.gridSize) * config.gridSize
+					)
 				end
 			end)
 		end)
 	end,
-
+	
 	exitBuildMode = function(self: self)
 		if self.renderCon then
 			self.renderCon:Disconnect()
