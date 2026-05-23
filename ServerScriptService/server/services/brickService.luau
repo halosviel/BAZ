@@ -6,7 +6,12 @@
 	[DESCRIPTION]
 	
 	[NOTES]
-	- 
+	- naming conventions: 
+	    brickTool (tool)
+	    brickPart (part/handle in tool)
+	    brickSkin (part in bricks folder)
+	    brickSkinName (brickSkin data str)
+	    brickPreview (the client-rendered part)
 ]=]
 
 -- [REQUIRES]
@@ -40,7 +45,6 @@ return {
 		end
 		
 		--# give player brick on join
-		--# naming conventions: brickTool, brickPart
 		local function onCharacterAdded(character: Model)
 			local player = game.Players:GetPlayerFromCharacter(character)
 			

@@ -6,7 +6,12 @@
 	[DESCRIPTION]
 	
 	[NOTES]
-	- 
+	- naming conventions: 
+	    brickTool (tool)
+	    brickPart (part/handle in tool)
+	    brickSkin (part in bricks folder)
+	    brickSkinName (brickSkin data str)
+	    brickPreview (the client-rendered part)
 ]=]
 
 -- [REQUIRES]
@@ -44,21 +49,22 @@ return {
 	end,
 	
 	enterBuildMode = function(self: self)
-		dataServiceClient:read("brickSkin"):andThen(function(brickSkin: string)
+		dataServiceClient:read("brickSkin"):andThen(function(brickSkinName: string)
 			
 			--# create brick preview
 			
-			local brickPart: Part? = game.ReplicatedFirst.shared.bricks:FindFirstChild(brickSkin)
-			if not brickPart then
-				brickPart = game.ReplicatedFirst.shared.bricks:FindFirstChild("Default")
+			local brickSkin: Part? = game.ReplicatedFirst.shared.bricks:FindFirstChild(brickSkinName)
+			if not brickSkin then
+				brickSkin = game.ReplicatedFirst.shared.bricks:FindFirstChild("Default")
 			end
 			
-			self.brickPreview = brickPart:Clone()
+			self.brickPreview = brickSkin:Clone()
 			self.brickPreview.Transparency = config.buildPreviewTransparency
 			self.brickPreview.CanCollide = false
 			self.brickPreview.Parent = workspace.dynamic
 			
-			--# generate preview
+			--# position brick preview
+			
 			self.renderCon = game.RunService.RenderStepped:Connect(function()
 				
 				--# validation
@@ -77,33 +83,25 @@ return {
 				if not camera then
 					return
 				end
-
-
-				------------------- SANDBOX -------------------
-				
 				
 				--# raycast
 				--[[
 					If for some reason the result or its Instance is nil (in the void/out
 					of range perhaps), then the brick will be positioned at 0, 0, 0.
 				]]
+				
 				local params = RaycastParams.new()
 				params.ExcludeInstances = { character, camera, self.brickPreview }
 				
-				--# get mouse direction and clamp target to buildPreviewRadius
 				local mouseDirection: Vector3 = (self.mouse.Hit.Position - camera.CFrame.Position).Unit
-				local targetPoint: Vector3 = camera.CFrame.Position + mouseDirection * config.buildPreviewRadius
-				
 				local mouseHit: Vector3 = self.mouse.Hit.Position
 				
-				-- first try camera raycast
 				local result = workspace:Raycast(
 					camera.CFrame.Position,
 					mouseDirection * config.buildPreviewRadius,
 					params
 				)
 					
-				-- if that missed, try downward
 				if not result or not result.Instance then
 					local groundOrigin = Vector3.new(mouseHit.X, root.Position.Y + 50, mouseHit.Z)
 					result = workspace:Raycast(groundOrigin, Vector3.new(0, -100, 0), params)
@@ -112,12 +110,15 @@ return {
 				if not result or result and not result.Instance then
 					return
 				end
-
+				
 				local resultPos = result.Position + result.Normal * (self.brickPreview.Size / 2)
-				
-				
-				-----------------------------------------------
-				
+				local normalOffset = result.Normal * (self.brickPreview.Size / 2)
+
+				if math.abs(result.Normal.Y) > 0.5 then
+					resultPos = result.Position + Vector3.new(0, normalOffset.Y, 0)
+				else
+					resultPos = result.Position + Vector3.new(normalOffset.X, 0, normalOffset.Z)
+				end
 				
 				--# color
 				--# ( based on distance )
@@ -125,12 +126,12 @@ return {
 					if (root.Position - resultPos).Magnitude >= config.buildRadius then
 						self.brickPreview.Color = config.buildInvalidColor
 					else
-						self.brickPreview.Color = brickPart.Color
+						self.brickPreview.Color = brickSkin.Color
 					end
 				end
 				
-				--# place preview in rounded pos
-				
+				--# place preview
+				--# ( rounded )
 				if self.brickPreview then
 					self.brickPreview.Position = Vector3.new(
 						math.round(resultPos.X / config.gridSize) * config.gridSize,
@@ -157,7 +158,6 @@ return {
 	ready = function(self: self)
 		
 		--# make brick transparent for localplayer
-		--# naming conventions: brickTool, brickPart
 		local function initTool(brickTool: Tool)
 			if brickTool.Name ~= "Brick" then
 				return

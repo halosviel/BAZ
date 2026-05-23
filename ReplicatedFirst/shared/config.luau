@@ -11,7 +11,7 @@ return {
 	--# build system
 	gridSize = 1, -- snap
 	buildRadius = 15, -- how far from the HRP a player can build from
-	buildPreviewRadius = 45, -- how far a build preview will travel (do not let it go into void)
+	buildPreviewRadius = 45, -- how far a build preview will travel
 	buildPreviewTransparency = 0.5,
 	buildInvalidColor = Color3.fromRGB(255, 61, 64),
 }
