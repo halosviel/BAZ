@@ -34,11 +34,16 @@ return {
 	
 	ready = function(self: self)
 		
+		--# validate default brick
+		if game.ReplicatedFirst.shared.bricks:FindFirstChild("Default") == nil then
+			console.error("Bricks folder missing default brick")
+		end
+		
 		--# give player brick on join
 		--# naming conventions: brickTool, brickPart
 		game.Players.PlayerAdded:Connect(function(player: Player)
 			dataService:read(player, "brickSkin"):andThen(function(brickSkin: string)
-				local brickPart: Part? = game.ServerStorage.bricks:FindFirstChild(brickSkin)
+				local brickPart: Part? = game.ReplicatedFirst.shared.bricks:FindFirstChild(brickSkin)
 				if not brickPart then
 					console.warn(`Brick "{brickSkin}" not found. Unable to give to @{tostring(player)}`)
 					return
