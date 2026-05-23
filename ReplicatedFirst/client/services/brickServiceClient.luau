@@ -77,17 +77,6 @@ return {
 					return
 				end
 				
-				--# calculate direction clamped
-				local mouseDirection: Vector3 = (self.mouse.Hit.Position - camera.CFrame.Position).Unit
-				local targetPoint = camera.CFrame.Position - mouseDirection * config.buildRadius
-				
-				local offset = targetPoint - root.Position
-				if offset.Magnitude >= config.buildPreviewRadius then
-					targetPoint = root.Position + offset.Unit * config.buildPreviewRadius
-				end
-				
-				local direction = (targetPoint - camera.CFrame.Position)
-				
 				--# raycast
 				--[[
 					If for some reason the result or its Instance is nil (in the void/out
@@ -98,7 +87,7 @@ return {
 
 				local result = workspace:Raycast(
 					camera.CFrame.Position,
-					direction,
+					(self.mouse.Hit.Position - camera.CFrame.Position).Unit * config.buildPreviewRadius,
 					params
 				)
 				
@@ -106,12 +95,14 @@ return {
 					if self.brickPreview then
 						self.brickPreview.Position = Vector3.new(0, 0, 0)
 					end
+					return
 				end
 				
 				if not result.Instance then
 					if self.brickPreview then
 						self.brickPreview.Position = Vector3.new(0, 0, 0)
 					end
+					return
 				end
 				
 				local resultPos: Vector3 = result.Position
