@@ -55,6 +55,7 @@ return {
 			
 			self.brickPreview = brickPart:Clone()
 			self.brickPreview.Transparency = config.buildPreviewTransparency
+			self.brickPreview.CanCollide = false
 			self.brickPreview.Parent = workspace.dynamic
 			
 			--# generate preview
@@ -149,24 +150,37 @@ return {
 		
 		--# make brick transparent for localplayer
 		--# naming conventions: brickTool, brickPart
-		local brickTool: Tool? = game.Players.LocalPlayer.Backpack:WaitForChild("Brick")
-		local brickPart: Part? = brickTool:WaitForChild("Handle")
-		brickPart.Transparency = 0.7
-		
-		--# events
-		
-		brickTool.Equipped:Connect(function()
-			self:enterBuildMode()
-		end)
-		
-		brickTool.Unequipped:Connect(function()
-			self:exitBuildMode()
-		end)
-		
-		brickTool.AncestryChanged:Connect(function(_: Instance, parent: Instance)
-			if parent == nil then
-				self:exitBuildMode()
+		local function initTool(brickTool: Tool)
+			if brickTool.Name ~= "Brick" then
+				return
 			end
-		end)
+			
+			local brickPart: Part? = brickTool:WaitForChild("Handle")
+			brickPart.Transparency = 0.7
+			
+			--# events
+			
+			brickTool.Equipped:Connect(function()
+				self:enterBuildMode()
+			end)
+			
+			brickTool.Unequipped:Connect(function()
+				self:exitBuildMode()
+			end)
+			
+			brickTool.AncestryChanged:Connect(function(_: Instance, parent: Instance)
+				if parent ~= game.Players.LocalPlayer.Backpack and parent ~= game.Players.LocalPlayer.Character then
+					console.warn("Brick tool was moved/removed. Exiting build mode...")
+					self:exitBuildMode()
+				end
+			end)
+		end
+		
+		--# dynamic init for more flexibility
+		game.Players.LocalPlayer.Backpack.ChildAdded:Connect(initTool)
+		local brickTool: Tool? = game.Players.LocalPlayer.Backpack:FindFirstChild("Brick")
+		if brickTool then
+			initTool(brickTool)
+		end
 	end,
 } :: self
