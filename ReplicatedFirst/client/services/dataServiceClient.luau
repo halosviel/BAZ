@@ -48,7 +48,7 @@ type self = {
 	listen: ( self: self, key: string ) -> promise.Promise,
 	ready: ( self: self ) -> nil
 }
-export type Service = self
+export type DataServiceClient = self
 
 -->
 
@@ -90,7 +90,7 @@ return {
 	read = function(self: self, key: string) : promise.Promise
 		params.expect("string", key)
 		if dataTemplate[key] == nil then
-			console.error(`Write request dropped for @{tostring(player)}: "{key}" is not a valid key`)
+			console.deverr(`"{key}" is not a valid key`)
 			return
 		end
 
@@ -106,7 +106,7 @@ return {
 	listen = function(self: self, key: string) : promise.Promise
 		params.expect("string", key)
 		if dataTemplate[key] == nil then
-			console.error(`Write request dropped for @{tostring(player)}: "{key}" is not a valid key`)
+			console.deverr(`"{key}" is not a valid key`)
 			return
 		end
 		

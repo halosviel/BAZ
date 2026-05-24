@@ -35,7 +35,7 @@ type self = {
 	placeBrick: ( self: self, player: Player, brickCFrame: CFrame ) -> nil,
 	ready: ( self: self ) -> nil
 }
-export type Service = self
+export type BrickService = self
 
 -->
 

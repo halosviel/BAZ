@@ -45,7 +45,7 @@ type self = {
 	exitBuildMode: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
 }
-export type Service = self
+export type BrickServiceClient = self
 
 -->
 

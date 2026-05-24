@@ -161,7 +161,7 @@ return {
 		params.expect("string", key)
 		
 		if dataTemplate[key] == nil then
-			console.error(`Read request dropped for @{tostring(player)}: "{key}" is not a valid key`)
+			console.deverr(`"{key}" is not a valid key`)
 			return
 		end
 		
@@ -189,7 +189,7 @@ return {
 		params.expect("function", callback)
 		
 		if dataTemplate[key] == nil then
-			console.error(`Write request dropped for @{tostring(player)}: "{key}" is not a valid key`)
+			console.deverr(`"{key}" is not a valid key`)
 			return
 		end
 		
@@ -202,6 +202,7 @@ return {
 			end
 			
 			if newValue == nil and self.NIL_WRITES_ALLOWED == false then
+				--# warn since promise attaches traceback - we don't want that here
 				console.warn(`ERROR :: Write request dropped for @{tostring(player)}: Illegal nil write to {key}`)
 				return
 			end
@@ -247,7 +248,7 @@ return {
 		params.expect("string", key)
 		
 		if dataTemplate[key] == nil then
-			console.error(`Write request dropped for @{tostring(player)}: "{key}" is not a valid key`)
+			console.deverr(`"{key}" is not a valid key`)
 			return
 		end
 		
