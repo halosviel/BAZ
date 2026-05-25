@@ -21,6 +21,9 @@ type Properties = {
 }
 type Entity = {
 	model: Model,
+	entries: {
+		
+	},
 	staticComponents: { string },
 	dynamicComponents: { string },
 	properties: Properties
@@ -69,22 +72,16 @@ return {
 		
 		--# components that are ran once on entity creation
 		self.staticComponents = {
-			["RANDOM_TORSO_COLOR"] = function(entity: Entity)
+			["DRESS"] = function(entity: Entity)
 				task.defer(function()
 					local humanoidDescription: HumanoidDescription = entity.model:WaitForChild("HumanoidDescription")
 					local humanoid: Humanoid = entity.model:WaitForChild("Humanoid")
 					
+					--# torso color
 					humanoidDescription.TorsoColor = self.TORSO_COLORS[math.random(1, #self.TORSO_COLORS)]
-					humanoid:ApplyDescriptionAsync(humanoidDescription)
-				end)
-			end,
-			["RANDOM_HEAD"] = function(entity: Entity)
-				task.defer(function()
+					
+					--# head
 					local randomHeadId: string = self.HEADS[math.random(1, #self.HEADS)]
-					
-					local humanoidDescription: HumanoidDescription = entity.model:WaitForChild("HumanoidDescription")
-					local humanoid: Humanoid = entity.model:WaitForChild("Humanoid")
-					
 					local itemDetails = game.AvatarEditorService:GetItemDetailsAsync(randomHeadId, Enum.AvatarItemType.Bundle)
 					local bundledItems: { { AssetType: number } } = itemDetails.BundledItems --# sum type hackery >:(
 					
@@ -106,7 +103,9 @@ return {
 			end,
 		}
 		self.dynamicComponents = {
-			
+			["BEHAVIOUR"] = function(entity: Entity)
+				
+			end,
 		}
 		
 		self.entities = {}
@@ -122,7 +121,11 @@ return {
 		params.expect("table", properties)
 		
 		local newEntity: Entity = {
+			--# private
 			model = game.ReplicatedFirst.shared.assets.ZombieRig:Clone(),
+			entries = {}, --# property injections
+			
+			--# public api
 			staticComponents = staticComponents,
 			dynamicComponents = dynamicComponents,
 			properties = properties
@@ -175,12 +178,9 @@ return {
 		end)
 		
 		--# test entity!!
-		self:addEntity({ "RANDOM_TORSO_COLOR", "RANDOM_HEAD", "SPAWN_AT" }, {}, { spawnAt = Vector3.new(2, 2.5, 0),  } :: Properties)
-		self:addEntity({ "RANDOM_TORSO_COLOR", "RANDOM_HEAD", "SPAWN_AT" }, {}, { spawnAt = Vector3.new(2, 2.5, 0),  } :: Properties)
-		self:addEntity({ "RANDOM_TORSO_COLOR", "RANDOM_HEAD", "SPAWN_AT" }, {}, { spawnAt = Vector3.new(2, 2.5, 0),  } :: Properties)
-		self:addEntity({ "RANDOM_TORSO_COLOR", "RANDOM_HEAD", "SPAWN_AT" }, {}, { spawnAt = Vector3.new(2, 2.5, 0),  } :: Properties)
-		self:addEntity({ "RANDOM_TORSO_COLOR", "RANDOM_HEAD", "SPAWN_AT" }, {}, { spawnAt = Vector3.new(2, 2.5, 0),  } :: Properties)
-		self:addEntity({ "RANDOM_TORSO_COLOR", "RANDOM_HEAD", "SPAWN_AT" }, {}, { spawnAt = Vector3.new(2, 2.5, 0),  } :: Properties)
-		self:addEntity({ "RANDOM_TORSO_COLOR", "RANDOM_HEAD", "SPAWN_AT" }, {}, { spawnAt = Vector3.new(2, 2.5, 0),  } :: Properties)
+		self:addEntity({ "DRESS", "SPAWN_AT" }, { "BEHAVIOUR" }, { spawnAt = Vector3.new(2, 2.5, 0), } :: Properties)
+		self:addEntity({ "DRESS", "SPAWN_AT" }, { "BEHAVIOUR" }, { spawnAt = Vector3.new(2, 2.5, 0), } :: Properties)
+		self:addEntity({ "DRESS", "SPAWN_AT" }, { "BEHAVIOUR" }, { spawnAt = Vector3.new(2, 2.5, 0), } :: Properties)
+		self:addEntity({ "DRESS", "SPAWN_AT" }, { "BEHAVIOUR" }, { spawnAt = Vector3.new(2, 2.5, 0), } :: Properties)
 	end,
 } :: self
