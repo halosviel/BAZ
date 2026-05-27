@@ -197,7 +197,6 @@ return {
 							console.warn(`Unable to place brick: {message}`)
 						end
 					end
-
 					self.requestPending = false
 				end
 			end))
