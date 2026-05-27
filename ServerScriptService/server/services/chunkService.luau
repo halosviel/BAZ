@@ -13,7 +13,7 @@
 -- [REQUIRES]
 
 -- [TYPES]
-type Chunk = Vector3
+export type Chunk = Vector3
 
 type self = {
 	-- [CONFIG]
@@ -21,7 +21,7 @@ type self = {
 	CHUNK_RADIUS: number,
 	
 	-- [ENTRIES]
-	seed: number,
+	seed: Random,
 	chunks: { Chunk },
 	
 	-- [FUNCTIONS]
@@ -50,7 +50,7 @@ return {
 		
 		[NOTES]
 		- Should only be called once.
-		- Clanker code.
+		- clanker code
 	]]
 	_cacheChunks = function(self: self)
 		local origin = Vector3.new(0, 0, 0)

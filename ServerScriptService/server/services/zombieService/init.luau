@@ -11,8 +11,6 @@
 
 -- [REQUIRES]
 local console = require("@game/ReplicatedFirst/pip/console")
-
-local chunkService = require("./chunkService")
 local zombie = require("@self/zombie")
 
 -- [TYPES]
@@ -44,7 +42,7 @@ local baseplate = workspace.static.Baseplate
 return {
 	constructor = function(self: self)
 		self.MAX_ZOMBIE_COUNT = 50
-		self.ZOMBIE_SPAWN_INTERVAL = { 1, 3 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
+		self.ZOMBIE_SPAWN_INTERVAL = { 0, 4 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
 		
 		self.zombies = {}
 		self.spawnThread = nil
@@ -74,7 +72,9 @@ return {
 				--# wait
 				local min: number = self.ZOMBIE_SPAWN_INTERVAL[1]
 				local max: number = self.ZOMBIE_SPAWN_INTERVAL[2]
-				local randomInterval: number = math.random(min / 10, max / 10) * 10
+				local randomInterval: number = math.random(min * 10, max * 10) / 10
+				
+				--print("spawn")
 				task.wait(randomInterval)
 			end
 		end)
