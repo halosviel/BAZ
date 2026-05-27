@@ -54,9 +54,7 @@ export type DataServiceClient = self
 
 return {
 	constructor = function(self: self)
-		-- [CONFIG]
 		self.LONG_REQUEST = 10
-		-->
 		
 		self.data = nil
 		self.dataFetchedSignal = signal.new()

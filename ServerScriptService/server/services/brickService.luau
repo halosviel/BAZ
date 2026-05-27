@@ -41,9 +41,7 @@ export type BrickService = self
 
 return {
 	constructor = function(self: self)
-		-- [CONFIG]
 		self.BUILD_RADIUS_FORGIVEABLE = 4 -- how far outside config.buildRadius the player can build
-		-->
 	end,
 	
 	placeBrick = function(self: self, player: Player, brickCFrame: CFrame)

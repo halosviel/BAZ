@@ -1,7 +1,7 @@
 --[=[
 	[INFO]
 	author: @halosviel
-	created: 2026 May 22
+	created: 2026 May 27
 	
 	[DESCRIPTION]
 	
@@ -10,6 +10,7 @@
 ]=]
 
 -- [REQUIRES]
+local class = require("@game/ReplicatedFirst/pip/class")
 
 -- [TYPES]
 type self = {
@@ -18,15 +19,15 @@ type self = {
 	-- [ENTRIES]
 	
 	-- [FUNCTIONS]
-	constructor: ( self: self ) -> nil,
+	new: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
 }
-export type Service = self
+export type Zombie = self
 
 -->
 
-return {
-	constructor = function(self: self)
+return class {
+	new = function(self: self)
 		
 	end,
 	

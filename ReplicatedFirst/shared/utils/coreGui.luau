@@ -18,9 +18,10 @@
 	  properly manage all requests.
 ]=]
 
-local console = require("@game/ReplicatedFirst/pip/console")
+-- [REQUIRES]
 local params = require("@game/ReplicatedFirst/pip/params")
 
+-- [TYPES]
 type self = {
 	setResetEnabled: ( self: self, enabled: boolean ) -> nil,
 	setLeaderboardEnabled: ( self: self, enabled: boolean ) -> nil,
@@ -29,12 +30,13 @@ type self = {
 }
 export type CoreGui = self
 
+-->
+
 return {
 	--# since this runs asynchronously, race conditions can happen if multiple calls happen simultaneously.
 	--# updated logic 2026 May 14
 	setResetEnabled = function(self: self, enabled: boolean)
 		params.expect("boolean", enabled)
-		
 		task.spawn(function()
 			repeat task.wait() until pcall(function()
 				game.StarterGui:SetCore("ResetButtonCallback", false)
@@ -58,6 +60,5 @@ return {
 		self:setResetEnabled(enabled)
 		self:setLeaderboardEnabled(enabled)
 		self:setChatEnabled(enabled)
-		self:setResetEnabled(enabled)
 	end,
 } :: CoreGui

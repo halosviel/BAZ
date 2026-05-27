@@ -4,6 +4,9 @@
 	created: 2026 May 24
 	
 	[DESCRIPTION]
+	A service for spawning zombies.
+	
+	Uses an integrated ECS system.
 	
 	[NOTES]
 	- 
@@ -16,14 +19,13 @@ local params = require("@game/ReplicatedFirst/pip/params")
 -- [TYPES]
 --# entity
 type Properties = {
-	spawnAt: number,
-	
+	spawnAt: number
 }
 type Entity = {
 	model: Model,
-	entries: {
-		
-	},
+	state: string?,
+	transitioning: boolean,
+	
 	staticComponents: { string },
 	dynamicComponents: { string },
 	properties: Properties
@@ -73,6 +75,9 @@ return {
 		--# components that are ran once on entity creation
 		self.staticComponents = {
 			["DRESS"] = function(entity: Entity)
+				params.expect("table", entity)
+				params.expect("Model", entity.model)
+				
 				task.defer(function()
 					local humanoidDescription: HumanoidDescription = entity.model:WaitForChild("HumanoidDescription")
 					local humanoid: Humanoid = entity.model:WaitForChild("Humanoid")
@@ -96,6 +101,8 @@ return {
 				end)
 			end,
 			["SPAWN_AT"] = function(entity: Entity)
+				params.expect("table", entity)
+				params.expect("table", entity.properties)
 				params.expect("Vector3", entity.properties.spawnAt)
 				
 				entity.model.Parent = workspace.dynamic.zombies
@@ -105,6 +112,19 @@ return {
 		self.dynamicComponents = {
 			["BEHAVIOUR"] = function(entity: Entity)
 				
+				--[[
+				
+				if state == nil then
+					state = "roaming"
+				end
+				
+				if nearestPlayer.dist <= 30 then
+					state = "attackPlayer"
+				end
+				
+				if nearestBrickCluster 
+				
+				]]
 			end,
 		}
 		
@@ -123,9 +143,10 @@ return {
 		local newEntity: Entity = {
 			--# private
 			model = game.ReplicatedFirst.shared.assets.ZombieRig:Clone(),
-			entries = {}, --# property injections
+			state = nil,
+			transitioning = false,
 			
-			--# public api
+			--# public
 			staticComponents = staticComponents,
 			dynamicComponents = dynamicComponents,
 			properties = properties

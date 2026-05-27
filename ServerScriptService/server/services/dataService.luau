@@ -88,13 +88,11 @@ export type DataService = self
 
 return {
 	constructor = function(self: self)
-		-- [CONFIG]
 		self.TEST_DATASTORE = "Test_1"
 		self.LIVE_DATASTORE = "Live_1"
 		self.PROFILE_FETCH_TIMEOUT = 10
 		self.NIL_WRITES_ALLOWED = false
 		self.CROSS_TYPE_WRITES_ALLOWED = false
-		-->
 		
 		local serverStore: string = game.RunService:IsStudio() and self.TEST_DATASTORE or self.LIVE_DATASTORE
 		self.session = profileStore.New(serverStore, dataTemplate) --# the server proile store
