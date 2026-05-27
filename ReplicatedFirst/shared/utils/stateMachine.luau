@@ -244,7 +244,7 @@ function StateMachine:Destroy()
 	if isRunning() and #stateMachines == 0 then
 		stop()
 	end
-
+	
 	self.state = nil
 	
 	table.clear(self.states)
@@ -252,7 +252,7 @@ function StateMachine:Destroy()
 	
 	table.clear(self.queue)
 	self.queue = nil
-
+	
 	setmetatable(self, nil)
 	table.clear(self)
 end

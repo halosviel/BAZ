@@ -9,10 +9,11 @@
 
 -- [CONFIG]
 local UPDATE_INTERVAL = 1
+local UPDATE_VALUE = 0.025
 
 -->
 
 while true do
-	game.Lighting.ClockTime += 0.1
+	game.Lighting.ClockTime += UPDATE_VALUE
 	task.wait(UPDATE_INTERVAL)
 end
