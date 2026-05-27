@@ -20,6 +20,7 @@ type self = {
 	
 	-- [FUNCTIONS]
 	new: ( self: self ) -> nil,
+	spawn: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
 }
 export type Zombie = self
@@ -28,6 +29,10 @@ export type Zombie = self
 
 return class {
 	new = function(self: self)
+		
+	end,
+	
+	spawn = function(self: self)
 		
 	end,
 	

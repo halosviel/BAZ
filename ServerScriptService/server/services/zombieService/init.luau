@@ -10,22 +10,29 @@
 ]=]
 
 -- [REQUIRES]
-local stateMachine = require("@game/ReplicatedFirst/shared/utils/stateMachine")
+local console = require("@game/ReplicatedFirst/pip/console")
+
 local chunkService = require("./chunkService")
 local zombie = require("@self/zombie")
 
 -- [TYPES]
+type SpawningState = {
+	thread: RBXScriptConnection?
+}
+
 type self = {
 	-- [CONFIG]
 	MAX_ZOMBIE_COUNT: number,
 	ZOMBIE_SPAWN_INTERVAL: number,
 	
 	-- [ENTRIES]
-	stateMachine: stateMachine.StateMachine,
 	zombies: { zombie.Zombie },
+	spawnThread: thread?,
 	
 	-- [FUNCTIONS]
 	constructor: ( self: self ) -> nil,
+	startSpawning: ( self: self ) -> nil,
+	stopSpawning: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
 }
 export type ZombieService = self
@@ -40,12 +47,49 @@ return {
 		self.ZOMBIE_SPAWN_INTERVAL = { 1, 3 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
 		
 		self.zombies = {}
-		self.stateMachine = stateMachine.new("ZOMBIE_STATE_MACHINE", {
-			
-		})
+		self.spawnThread = nil
+	end,
+	
+	--[[
+		Repeatedly spawns zombies in a random ranged interval, only
+		pausing if the max number of zombies are reached.
+		
+		If the max number of zombies are reached and a zombie dies/
+		is removed from self.zombies, a new one will be spawned in
+		its place as long as this thread is still running.
+	]]
+	startSpawning = function(self: self)
+		if self.spawnThread then
+			console.warn("Requets to start zombie spawning dropped: Thread already exists")
+			return
+		end
+		
+		self.spawnThread = task.defer(function()
+			while #self.zombies < self.MAX_ZOMBIE_COUNT do
+				--# spawn zombie
+				local newZombie: zombie.Zombie = zombie.new()
+				newZombie:spawn()
+				table.insert(self.zombies, newZombie)
+
+				--# wait
+				local min: number = self.ZOMBIE_SPAWN_INTERVAL[1]
+				local max: number = self.ZOMBIE_SPAWN_INTERVAL[2]
+				local randomInterval: number = math.random(min / 10, max / 10) * 10
+				task.wait(randomInterval)
+			end
+		end)
+	end,
+	
+	stopSpawning = function(self: self)
+		if not self.spawnThread then
+			console.warn("Requets to stop zombie spawning dropped: Thread does not exist")
+		end
+
+		task.cancel(self.spawnThread)
+		self.spawnThread = nil
 	end,
 	
 	ready = function(self: self)
-		
+		self:startSpawning()
 	end,
 } :: self
