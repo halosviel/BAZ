@@ -79,7 +79,7 @@ return {
 				--print("spawn")
 				task.wait(randomInterval)
 			end
-		end)d
+		end)
 	end,
 	
 	stopSpawning = function(self: self)
