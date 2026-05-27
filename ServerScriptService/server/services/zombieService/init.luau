@@ -38,11 +38,12 @@ export type ZombieService = self
 -->
 
 local baseplate = workspace.static.Baseplate
+local globalId = 0
 
 return {
 	constructor = function(self: self)
 		self.MAX_ZOMBIE_COUNT = 50
-		self.ZOMBIE_SPAWN_INTERVAL = { 0, 4 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
+		self.ZOMBIE_SPAWN_INTERVAL = { 0, 0 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
 		
 		self.zombies = {}
 		self.spawnThread = nil
@@ -65,7 +66,8 @@ return {
 		self.spawnThread = task.defer(function()
 			while #self.zombies < self.MAX_ZOMBIE_COUNT do
 				--# spawn zombie
-				local newZombie: zombie.Zombie = zombie.new()
+				globalId += 1
+				local newZombie: zombie.Zombie = zombie.new(globalId)
 				newZombie:spawn()
 				table.insert(self.zombies, newZombie)
 
@@ -77,7 +79,7 @@ return {
 				--print("spawn")
 				task.wait(randomInterval)
 			end
-		end)
+		end)d
 	end,
 	
 	stopSpawning = function(self: self)
