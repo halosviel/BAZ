@@ -52,11 +52,11 @@ type self = {
 	
 	-- [FUNCTIONS]
 	new: ( self: self ) -> nil,
+	_spawn: ( self: self ) -> nil,
 	_setup: ( self: self ) -> nil,
 	_setWalkSpeed: ( self: self, walkSpeed: number ) -> nil,
 	_playAnimation: ( self: self, animationName: string ) -> nil,
 	_stopAnimation: ( self: self, animationName: string ) -> nil,
-	spawn: ( self: self ) -> nil,
 	Destroy: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
 }
@@ -244,6 +244,72 @@ return class {
 		})
 	end,
 	
+	--[[
+		Spawn the model into the world.
+		
+		1. fetches all chunks without players. Fail -> retry
+		2. randomises between them
+		3. raycast down from within the chunk's bounds from y999
+		4. if baseplate is hit then spawn
+		
+		Should only be called once!!
+	]]
+	_spawn = function(self: self)
+		task.defer(function()
+			if self.spawned then
+				console.deverr("Cannot call spawn() twice")
+			end
+			
+			repeat
+				task.wait(SPAWN_RETRY_INTERVAL)
+				--print("repeat")
+				
+				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
+				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
+					console.warn("No spawning chunks found", "Skipping...")
+					continue
+				end
+				
+				local randomChunk: chunkService.Chunk = spawnableChunks[math.random(1, #spawnableChunks)]
+				local chunkTopRight = Vector3.new(randomChunk.X + chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z + chunkService.CHUNK_SIZE / 2)
+				local chunkBottomLeft = Vector3.new(randomChunk.X - chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z - chunkService.CHUNK_SIZE / 2)
+				
+				local raycastOrigin = Vector3.new(
+					chunkService.seed:NextNumber(chunkTopRight.X, chunkBottomLeft.X),
+					SPAWN_RAYCAST_Y,
+					chunkService.seed:NextNumber(chunkTopRight.Z, chunkBottomLeft.Z)
+				)
+				local result: RaycastResult = workspace:Raycast(raycastOrigin, Vector3.new(0, -SPAWN_RAYCAST_Y - 1, 0))
+				if not result or result and not result.Instance then
+					continue
+				end
+				if result.Instance ~= workspace.static.Baseplate then
+					continue
+				end
+				
+				self.model:PivotTo(CFrame.new(result.Position) + Vector3.new(0, 2, 0))
+				self.model.Parent = workspace.dynamic.zombies
+				
+				self.spawned = true
+				
+				--[[
+				
+				--# part test
+				local part = Instance.new("Part")
+				part.Position = raycastOrigin
+				part.Anchored = true
+				part.Parent = workspace
+				
+				]]
+			until self.spawned == true
+			
+			--# post-spawn events
+			task.wait()
+			self:_setup()
+			self.stateMachine:setState("idle")
+		end)
+	end,
+	
 	_setup = function(self: self)
 		--# Dress the rig
 		do
@@ -384,72 +450,6 @@ return class {
 		end
 	end,
 	
-	--[[
-		Spawn the model into the world.
-		
-		1. fetches all chunks without players. Fail -> retry
-		2. randomises between them
-		3. raycast down from within the chunk's bounds from y999
-		4. if baseplate is hit then spawn
-		
-		Should only be called once!!
-	]]
-	spawn = function(self: self)
-		task.defer(function()
-			if self.spawned then
-				console.deverr("Cannot call spawn() twice")
-			end
-			
-			repeat
-				task.wait(SPAWN_RETRY_INTERVAL)
-				--print("repeat")
-				
-				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
-				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
-					console.warn("No spawning chunks found", "Skipping...")
-					continue
-				end
-				
-				local randomChunk: chunkService.Chunk = spawnableChunks[math.random(1, #spawnableChunks)]
-				local chunkTopRight = Vector3.new(randomChunk.X + chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z + chunkService.CHUNK_SIZE / 2)
-				local chunkBottomLeft = Vector3.new(randomChunk.X - chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z - chunkService.CHUNK_SIZE / 2)
-				
-				local raycastOrigin = Vector3.new(
-					chunkService.seed:NextNumber(chunkTopRight.X, chunkBottomLeft.X),
-					SPAWN_RAYCAST_Y,
-					chunkService.seed:NextNumber(chunkTopRight.Z, chunkBottomLeft.Z)
-				)
-				local result: RaycastResult = workspace:Raycast(raycastOrigin, Vector3.new(0, -SPAWN_RAYCAST_Y - 1, 0))
-				if not result or result and not result.Instance then
-					continue
-				end
-				if result.Instance ~= workspace.static.Baseplate then
-					continue
-				end
-				
-				self.model:PivotTo(CFrame.new(result.Position) + Vector3.new(0, 2, 0))
-				self.model.Parent = workspace.dynamic.zombies
-				
-				self.spawned = true
-				
-				--[[
-				
-				--# part test
-				local part = Instance.new("Part")
-				part.Position = raycastOrigin
-				part.Anchored = true
-				part.Parent = workspace
-				
-				]]
-			until self.spawned == true
-			
-			--# post-spawn events
-			task.wait()
-			self:_setup()
-			self.stateMachine:setState("idle")
-		end)
-	end,
-	
 	Destroy = function(self: self)
 		task.delay(DESTROY_DELAY, function()
 			if self.model then
@@ -467,5 +467,6 @@ return class {
 	end,
 	
 	ready = function(self: self)
+		self:_spawn()
 	end,
 } :: self
