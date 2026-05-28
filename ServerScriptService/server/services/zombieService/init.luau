@@ -83,7 +83,7 @@ return {
 						return
 					end
 					
-					print(`cleaned zombie {newZombie.id}`)
+					--print(`cleaned zombie {newZombie.id}`)
 					table.remove(self.zombies, table.find(self.zombies, newZombie))
 					
 					zombieMaid:DoCleaning()

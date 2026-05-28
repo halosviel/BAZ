@@ -29,7 +29,7 @@ type IdleState = {
 	thread: thread?
 }
 type RoamingState = {
-	maid: maid.Maid
+	maid: maid.Maid?
 }
 type AttackingState = {}
 type BurningState = {}
@@ -48,6 +48,7 @@ type self = {
 	runSpeed: number,
 	path: Path,
 	raycastParams: RaycastParams,
+	maid: maid.Maid,
 	stateMachine: stateMachine.StateMachine,
 	
 	-- [FUNCTIONS]
@@ -81,6 +82,8 @@ local WALK_SPEED = { min = 2, max = 6 }
 local RUN_SPEED = { min = 8, max = 18 }
 local ROAM_RADIUS = 40
 local SEARCH_RADIUS = 30 -- player search radius
+local SEARCH_SLOW_INTERVAL = 3 -- search update interval with no target
+local SEARCH_FAST_INTERVAL = 0.2 -- search update interval while chasing target
 local DESTROY_DELAY = 3 -- how long the zombie will stay after dying before being deleted
 
 -->
@@ -109,6 +112,7 @@ return class {
 		})
 		self.raycastParams = RaycastParams.new()
 		self.raycastParams.ExcludeInstances = { self.model }
+		self.maid = maid.new()
 		self.stateMachine = stateMachine.new(`ZOMBIE_{id}`, {
 			idle = {
 				thread = nil,
@@ -131,7 +135,7 @@ return class {
 				end
 			},
 			roaming = {
-				maid = maid.new(),
+				maid = nil,
 				
 				--[[
 					Picks a random point around the model to go to. It raycasts
@@ -143,6 +147,8 @@ return class {
 				]]
 				enter = function(state: stateMachine.State & RoamingState)
 					--warn("roaming")
+					state.maid = maid.new() --# cleaning ts is tricky if we just create it once. TODO: optimize later
+					self.maid:GiveTask(state.maid)
 					self:_setWalkSpeed(self.walkSpeed)
 					
 					--# search for point
@@ -197,6 +203,7 @@ return class {
 				exit = function(state: stateMachine.State & RoamingState)
 					if state.maid then
 						state.maid:DoCleaning()
+						state.maid = nil
 					end
 				end,
 			},
@@ -255,7 +262,7 @@ return class {
 		Should only be called once!!
 	]]
 	_spawn = function(self: self)
-		task.defer(function()
+		self.maid:GiveTask(task.defer(function()
 			if self.spawned then
 				console.deverr("Cannot call spawn() twice")
 			end
@@ -304,10 +311,9 @@ return class {
 			until self.spawned == true
 			
 			--# post-spawn events
-			task.wait()
 			self:_setup()
 			self.stateMachine:setState("idle")
-		end)
+		end))
 	end,
 	
 	_setup = function(self: self)
@@ -330,15 +336,16 @@ return class {
 					console.warn("Failed to fetch head info via GetItemDetailsAsync()", err)
 				end,
 			}
-			if not done then
-				return
-			end
 			
-			local bundledItems: BundledItems = itemDetails.BundledItems
-			for _, item: { AssetType: string, Id: number} in bundledItems do
-				if item.AssetType == "DynamicHead" then --# NOTE: AssetType might change
-					humanoidDescription.Head = item.Id
-					break
+			--# if head fetch fails, allow the humanoid to still apply desc for
+			--# torso color -> do not return end
+			if done then
+				local bundledItems: BundledItems = itemDetails.BundledItems
+				for _, item: { AssetType: string, Id: number} in bundledItems do
+					if item.AssetType == "DynamicHead" then --# NOTE: AssetType might change
+						humanoidDescription.Head = item.Id
+						break
+					end
 				end
 			end
 			
