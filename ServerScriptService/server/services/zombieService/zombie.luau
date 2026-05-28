@@ -12,6 +12,7 @@
 -- [REQUIRES]
 local class = require("@game/ReplicatedFirst/pip/class")
 local console = require("@game/ReplicatedFirst/pip/console")
+local params = require("@game/ReplicatedFirst/pip/params")
 local try = require("@game/ReplicatedFirst/pip/try")
 
 local stateMachine = require("@game/ReplicatedFirst/shared/utils/stateMachine")
@@ -20,26 +21,44 @@ local chunkService = require("../chunkService")
 -- [TYPES]
 type BundledItems = { { AssetType: number } } --# sum type hackery bc roblox returns generic dict >:(
 
+type IdleState = {
+	thread: thread
+}
+type RoamingState = {
+	blockedCon: RBXScriptConnection
+}
+type AttackingState = {}
+type BurningState = {}
+type DeadState = {}
+
 type self = {
-	-- [CONFIG]
-	SPAWN_RAYCAST_Y: number,
-	
 	-- [ENTRIES]
 	id: number,
+	spawned: boolean,
+
 	model: Model,
+	root: Part,
+	humanoid: Humanoid,
+	
+	walkSpeed: number,
+	runSpeed: number,
+	path: Path,
+	raycastParams: RaycastParams,
 	stateMachine: stateMachine.StateMachine,
 	
 	-- [FUNCTIONS]
 	new: ( self: self ) -> nil,
-	_applyStyles: ( self: self ) -> nil,
+	_setup: ( self: self ) -> nil,
+	_setWalkSpeed: ( self: self, walkSpeed: number ) -> nil,
+	_playAnimation: ( self: self, animationName: string ) -> nil,
+	_stopAnimation: ( self: self, animationName: string ) -> nil,
 	spawn: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
 }
 export type Zombie = self
 
--->
-
 -- [CONFIG]
+--# outside self bc its a class, not a singleton
 local TORSO_COLORS = {
 	Color3.fromRGB(12, 70, 40), Color3.fromRGB(70, 70, 70), Color3.fromRGB(103, 103, 103),
 	Color3.fromRGB(16, 16, 16), Color3.fromRGB(158, 158, 158), Color3.fromRGB(90, 14, 15),
@@ -50,105 +69,299 @@ local TORSO_COLORS = {
 local HEADS = {
 	48108254826353, 189682885115008, 274897006582337, 107770861134701, 40329797566983, 69132779144008, 
 }
+local SPAWN_RETRY_INTERVAL = 1
+local SPAWN_RAYCAST_Y = 999
+local IDLE_DURATION = { min = 1, max = 6 }
+local WALK_SPEED = { min = 2, max = 6 }
+local RUN_SPEED = { min = 8, max = 18 }
+local ROAM_RADIUS = 20
 
 -->
 
 return class {
 	new = function(self: self, id: number)
-		self.SPAWN_RAYCAST_Y = 999
-		
+		--# data
 		self.id = id
+		self.spawned = false
+		
+		--# model
 		self.model = game.ReplicatedFirst.shared.assets.ZombieRig:Clone()
+		self.model.Name = `Zombie_{id}`
+		self.root = self.model:WaitForChild("HumanoidRootPart")
+		self.humanoid = self.model:WaitForChild("Humanoid")
+		
+		--# behaviour
+		self.walkSpeed = math.random(WALK_SPEED.min, WALK_SPEED.max)
+		self.runSpeed = math.random(RUN_SPEED.min, RUN_SPEED.max)
+		self.path = game.PathfindingService:CreatePath({
+			AgentRadius = 2,
+			AgentHeight = 5,
+			AgentCanJump = true,
+			AgentJumpHeight = 7,
+			AgentMaxSlope = 45
+		})
+		self.raycastParams = RaycastParams.new()
+		self.raycastParams.ExcludeInstances = { self.model }
 		self.stateMachine = stateMachine.new(`ZOMBIE_{id}`, {
 			idle = {
-				enter = function()
+				thread = nil,
+				enter = function(state: stateMachine.State & IdleState)
+					--warn("idle")
+					
+					--[[
+						Waits for a few seconds, then changes state to roaming.
+					]]
+					state.thread = task.defer(function()
+						local waitDuration = math.random(IDLE_DURATION.min * 10, IDLE_DURATION.max * 10) / 10
+						task.delay(waitDuration, function()
+							self.stateMachine:setState("roaming")
+						end)
+					end)
+				end,
+				exit = function(state: stateMachine.State & IdleState)
+					if state.thread then
+						task.cancel(state.thread)
+						state.thread = nil
+					end
+				end,
+			},
+			roaming = {
+				blockedCon = nil,
+				
+				--[[
+					Picks a random point around the model to go to. It raycasts
+					to see if the point is traversable. If so, it will use
+					MoveTo() directly, otherwise pathfinding is used.
+					
+					Once the destination is reached, the state is set
+					to idle.
+				]]
+				enter = function(state: stateMachine.State & RoamingState)
+					--warn("roaming")
+					self:_setWalkSpeed(self.walkSpeed)
+					
+					--# search for point
+					local randomPoint: Vector3 = self.root.Position + Vector3.new(
+						math.random(-ROAM_RADIUS, ROAM_RADIUS),
+						0,
+						math.random(-ROAM_RADIUS, ROAM_RADIUS)
+					)
+					
+					local result: RaycastResult = workspace:Raycast(
+						self.root.Position, randomPoint - self.root.Position, self.raycastParams
+					)
+					if result then
+						--print("pathfind")
+						--# Pathfind
+						--# if pathfind fails, it will change state to idle
+						self.path:ComputeAsync(self.root.Position, randomPoint)
+						if self.path.Status == Enum.PathStatus.NoPath then
+							self.stateMachine:setState("idle")
+							return
+						end
+						
+						state.blockedCon = self.path.Blocked:Connect(function()
+							self.stateMachine:setState("idle")
+						end)
+
+						local waypoints: { PathWaypoint } = self.path:GetWaypoints()
+						for _, waypoint in pairs(waypoints) do
+							self.humanoid:MoveTo(waypoint.Position)
+							self.humanoid.MoveToFinished:Wait()
+						end
+						
+						self.stateMachine:setState("idle")
+					else
+						--print("moveto")
+						--# MoveTo
+						self.humanoid:MoveTo(randomPoint)
+					end
+				end,
+				exit = function(state: stateMachine.State & RoamingState)
+					if state.blockedCon then
+						state.blockedCon:Disconnect()
+						state.blockedCon = nil
+					end
+				end,
+			},
+			attacking = {
+				enter = function(state: stateMachine.State & AttackingState)
+					self:_setWalkSpeed(self.runSpeed)
+				end,
+				exit = function(state: stateMachine.State & AttackingState)
+					
+				end,
+			},
+			burning = {
+				enter = function(state: stateMachine.State & BurningState)
+					
+				end,
+				exit = function(state: stateMachine.State & BurningState)
+					
+				end,
+			},
+			dead = {
+				enter = function(state: stateMachine.State & DeadState)
+					
+				end,
+				exit = function(state: stateMachine.State & DeadState)
 					
 				end,
 			}
 		})
 	end,
 	
-	--[[
-		Dress the rig.
-	]]
-	_applyStyles = function(self: self)
-		local humanoidDescription: HumanoidDescription = self.model:WaitForChild("HumanoidDescription")
-		local humanoid: Humanoid = self.model:WaitForChild("Humanoid")
-		
-		--# torso color
-		humanoidDescription.TorsoColor = TORSO_COLORS[math.random(1, #TORSO_COLORS)]
-		
-		--# head
-		local randomHeadId: string = HEADS[math.random(1, #HEADS)]
-		
-		local done: boolean, itemDetails: { BundledItems: BundledItems } = try {
-			function()
-				return game.AvatarEditorService:GetItemDetailsAsync(randomHeadId, Enum.AvatarItemType.Bundle)
-			end,
-			function(err: string)
-				console.warn("Failed to fetch head info via GetItemDetailsAsync()", err)
-			end,
-		}
-		if not done then
-			return
-		end
-		
-		local bundledItems: BundledItems = itemDetails.BundledItems
-		for _, obj in bundledItems do
-			if obj.AssetType == "DynamicHead" then --# NOTE: AssetType might change
-				humanoidDescription.Head = obj.Id
-				break
+	_setup = function(self: self)
+		--# Dress the rig
+		do
+			local humanoidDescription: HumanoidDescription = self.humanoid:WaitForChild("HumanoidDescription")
+			
+			--# torso color
+			humanoidDescription.TorsoColor = TORSO_COLORS[math.random(1, #TORSO_COLORS)]
+			
+			--# head
+			local randomHeadId: string = HEADS[math.random(1, #HEADS)]
+			
+			local done: boolean, itemDetails: { BundledItems: BundledItems } = try {
+				function()
+					return game.AvatarEditorService:GetItemDetailsAsync(randomHeadId, Enum.AvatarItemType.Bundle)
+				end,
+				function(err: string)
+					console.warn("Failed to fetch head info via GetItemDetailsAsync()", err)
+				end,
+			}
+			if not done then
+				return
 			end
+			
+			local bundledItems: BundledItems = itemDetails.BundledItems
+			for _, obj in bundledItems do
+				if obj.AssetType == "DynamicHead" then --# NOTE: AssetType might change
+					humanoidDescription.Head = obj.Id
+					break
+				end
+			end
+			
+			--# apply styles
+			self.humanoid:ApplyDescriptionAsync(humanoidDescription)
 		end
 		
-		--# apply changes
-		humanoid:ApplyDescriptionAsync(humanoidDescription)
+		--# Animations
+		self:_playAnimation("ZombieArmIdle")
 	end,
 	
+	_setWalkSpeed = function(self: self, walkSpeed: number)
+		params.expect("number", walkSpeed)
+		if self.humanoid.WalkSpeed == walkSpeed then
+			return
+		end
+		self.humanoid.WalkSpeed = walkSpeed
+	end,
+	
+	--[[
+		Plays an animation. If an animation does not exist in self.animations,
+		it will lazy load animation.
+	]]
+	_playAnimation = function(self: self, animationName: string)
+		local animation: Animation = game.ReplicatedFirst.shared.animations:FindFirstChild(animationName)
+		if not animation then
+			console.deverr(`Animation "{animationName} does not exist`)
+		end
+		
+		local animator: Animator = self.humanoid:FindFirstChild("Animator")
+		local animationTrack: AnimationTrack? = animator:GetTrackByAnimationId(animation.AnimationId)
+		
+		if not animationTrack then
+			try {
+				function()
+					animationTrack = animator:LoadAnimation(animation)
+				end,
+				function(err: string)
+					console.warn(`Failed to load animation "{animationName}"`, `Err: {err}`)
+				end,
+			}
+		end
+		
+		--print("playing", animationTrack, animator:GetFullName())
+		animationTrack:Play()
+		task.wait(0.1)
+	end,
+	
+	--[[
+		Stops an animation with no fail states/handling.
+	]]
+	_stopAnimation = function(self: self, animationName: string)
+		local animationTrack: AnimationTrack? = self.animations[animationName]
+		if animationTrack then
+			animationTrack:Stop()
+		end
+	end,
+	
+	--[[
+		Spawn the model into the world.
+		
+		1. fetches all chunks without players. Fail -> retry
+		2. randomises between them
+		3. raycast down from within the chunk's bounds from y999
+		4. if baseplate is hit then spawn
+		
+		Should only be called once!!
+	]]
 	spawn = function(self: self)
-		local spawned = false
-		repeat
+		task.defer(function()
+			if self.spawned then
+				console.deverr("Cannot call spawn() twice")
+			end
+			
+			repeat
+				task.wait(SPAWN_RETRY_INTERVAL)
+				--print("repeat")
+				
+				local chunksWithoutPlayers: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
+				if not chunksWithoutPlayers or chunksWithoutPlayers and #chunksWithoutPlayers == 0 then
+					continue
+				end
+				
+				local randomChunk: chunkService.Chunk = chunksWithoutPlayers[math.random(1, #chunksWithoutPlayers)]
+				local chunkTopRight = Vector3.new(randomChunk.X + chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z + chunkService.CHUNK_SIZE / 2)
+				local chunkBottomLeft = Vector3.new(randomChunk.X - chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z - chunkService.CHUNK_SIZE / 2)
+				
+				local raycastOrigin = Vector3.new(
+					chunkService.seed:NextNumber(chunkTopRight.X, chunkBottomLeft.X),
+					SPAWN_RAYCAST_Y,
+					chunkService.seed:NextNumber(chunkTopRight.Z, chunkBottomLeft.Z)
+				)
+				local result: RaycastResult = workspace:Raycast(raycastOrigin, Vector3.new(0, -SPAWN_RAYCAST_Y - 1, 0))
+				if not result or result and not result.Instance then
+					continue
+				end
+				if result.Instance ~= workspace.static.Baseplate then
+					continue
+				end
+				
+				self.model:PivotTo(CFrame.new(result.Position) + Vector3.new(0, 2, 0))
+				self.model.Parent = workspace.dynamic.zombies
+				
+				self.spawned = true
+				
+				--[[
+				
+				--# part test
+				local part = Instance.new("Part")
+				part.Position = raycastOrigin
+				part.Anchored = true
+				part.Parent = workspace
+				
+				]]
+			until self.spawned == true
+			
+			--# post-spawn events
 			task.wait()
-			--print("repeat")
-			
-			local chunksWithoutPlayers: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
-			local randomChunk: chunkService.Chunk = chunksWithoutPlayers[math.random(1, #chunksWithoutPlayers)]
-			
-			local chunkTopRight = Vector3.new(randomChunk.X + chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z + chunkService.CHUNK_SIZE / 2)
-			local chunkBottomLeft = Vector3.new(randomChunk.X - chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z - chunkService.CHUNK_SIZE / 2)
-			
-			local raycastOrigin = Vector3.new(
-				chunkService.seed:NextNumber(chunkTopRight.X, chunkBottomLeft.X),
-				self.SPAWN_RAYCAST_Y,
-				chunkService.seed:NextNumber(chunkTopRight.Z, chunkBottomLeft.Z)
-			)
-			local result: RaycastResult = workspace:Raycast(raycastOrigin, Vector3.new(0, -self.SPAWN_RAYCAST_Y - 1, 0))
-			if not result or result and not result.Instance then
-				continue
-			end
-			if result.Instance ~= workspace.static.Baseplate then
-				continue
-			end
-			
-			self.model:PivotTo(CFrame.new(result.Position) + Vector3.new(0, 2, 0))
-			self.model.Parent = workspace.dynamic.zombies
-			
-			spawned = true
-			self:_applyStyles()
-			
-			--[[
-			
-			--# part test
-			local part = Instance.new("Part")
-			part.Position = raycastOrigin
-			part.Anchored = true
-			part.Parent = workspace
-			
-			]]
-		until spawned == true
+			self:_setup()
+			self.stateMachine:setState("idle")
+		end)
 	end,
 	
 	ready = function(self: self)
-		self.stateMachine:setState("idle")
 	end,
 } :: self

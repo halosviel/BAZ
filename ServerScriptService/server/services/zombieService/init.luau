@@ -43,7 +43,7 @@ local globalId = 0
 return {
 	constructor = function(self: self)
 		self.MAX_ZOMBIE_COUNT = 50
-		self.ZOMBIE_SPAWN_INTERVAL = { 0, 0 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
+		self.ZOMBIE_SPAWN_INTERVAL = { 0, 3 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
 		
 		self.zombies = {}
 		self.spawnThread = nil
@@ -67,16 +67,18 @@ return {
 			while #self.zombies < self.MAX_ZOMBIE_COUNT do
 				--# spawn zombie
 				globalId += 1
+				
 				local newZombie: zombie.Zombie = zombie.new(globalId)
 				newZombie:spawn()
+				
 				table.insert(self.zombies, newZombie)
-
+				
 				--# wait
 				local min: number = self.ZOMBIE_SPAWN_INTERVAL[1]
 				local max: number = self.ZOMBIE_SPAWN_INTERVAL[2]
 				local randomInterval: number = math.random(min * 10, max * 10) / 10
 				
-				--print("spawn")
+				--print("spawn", randomInterval)
 				task.wait(randomInterval)
 			end
 		end)
@@ -84,7 +86,8 @@ return {
 	
 	stopSpawning = function(self: self)
 		if not self.spawnThread then
-			console.warn("Requets to stop zombie spawning dropped: Thread does not exist")
+			console.warn("Request to stop zombie spawning dropped: Thread does not exist")
+			return
 		end
 
 		task.cancel(self.spawnThread)

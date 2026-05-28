@@ -205,7 +205,6 @@ return {
 	
 	exitBuildMode = function(self: self)
 		if self.maid then
-			warn("clean")
 			self.maid:DoCleaning()
 		end
 	end,
