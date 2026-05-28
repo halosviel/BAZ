@@ -248,6 +248,17 @@ return class {
 		end
 		
 		--# Animations
+		do
+			--# walking anim
+			self.humanoid.Running:Connect(function(speed)
+				if speed > 0 then
+					self:_playAnimation("ZombieWalk")
+				else
+					self:_stopAnimation("ZombieWalk")
+				end
+			end)
+		end
+		
 		self:_playAnimation("ZombieArmIdle")
 	end,
 	
@@ -292,7 +303,14 @@ return class {
 		Stops an animation with no fail states/handling.
 	]]
 	_stopAnimation = function(self: self, animationName: string)
-		local animationTrack: AnimationTrack? = self.animations[animationName]
+		local animation: Animation = game.ReplicatedFirst.shared.animations:FindFirstChild(animationName)
+		if not animation then
+			console.deverr(`Animation "{animationName} does not exist`)
+		end
+
+		local animator: Animator = self.humanoid:FindFirstChild("Animator")
+		local animationTrack: AnimationTrack? = animator:GetTrackByAnimationId(animation.AnimationId)
+		
 		if animationTrack then
 			animationTrack:Stop()
 		end
