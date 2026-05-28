@@ -16,16 +16,17 @@ local params = require("@game/ReplicatedFirst/pip/params")
 local try = require("@game/ReplicatedFirst/pip/try")
 
 local stateMachine = require("@game/ReplicatedFirst/shared/utils/stateMachine")
+local maid = require("@game/ReplicatedFirst/shared/libs/maid")
 local chunkService = require("../chunkService")
 
 -- [TYPES]
 type BundledItems = { { AssetType: number } } --# sum type hackery bc roblox returns generic dict >:(
 
 type IdleState = {
-	thread: thread
+	thread: thread?
 }
 type RoamingState = {
-	blockedCon: RBXScriptConnection
+	maid: maid.Maid
 }
 type AttackingState = {}
 type BurningState = {}
@@ -71,10 +72,10 @@ local HEADS = {
 }
 local SPAWN_RETRY_INTERVAL = 1
 local SPAWN_RAYCAST_Y = 999
-local IDLE_DURATION = { min = 1, max = 6 }
+local IDLE_DURATION = { min = 1, max = 4 }
 local WALK_SPEED = { min = 2, max = 6 }
 local RUN_SPEED = { min = 8, max = 18 }
-local ROAM_RADIUS = 20
+local ROAM_RADIUS = 40
 
 -->
 
@@ -111,11 +112,9 @@ return class {
 					--[[
 						Waits for a few seconds, then changes state to roaming.
 					]]
-					state.thread = task.defer(function()
-						local waitDuration = math.random(IDLE_DURATION.min * 10, IDLE_DURATION.max * 10) / 10
-						task.delay(waitDuration, function()
-							self.stateMachine:setState("roaming")
-						end)
+					local waitDuration = math.random(IDLE_DURATION.min * 10, IDLE_DURATION.max * 10) / 10
+					state.thread = task.delay(waitDuration, function()
+						self.stateMachine:setState("roaming")
 					end)
 				end,
 				exit = function(state: stateMachine.State & IdleState)
@@ -123,10 +122,10 @@ return class {
 						task.cancel(state.thread)
 						state.thread = nil
 					end
-				end,
+				end
 			},
 			roaming = {
-				blockedCon = nil,
+				maid = maid.new(),
 				
 				--[[
 					Picks a random point around the model to go to. It raycasts
@@ -151,36 +150,43 @@ return class {
 						self.root.Position, randomPoint - self.root.Position, self.raycastParams
 					)
 					if result then
-						--print("pathfind")
 						--# Pathfind
 						--# if pathfind fails, it will change state to idle
+						--print("pathfind")
 						self.path:ComputeAsync(self.root.Position, randomPoint)
 						if self.path.Status == Enum.PathStatus.NoPath then
 							self.stateMachine:setState("idle")
 							return
 						end
 						
-						state.blockedCon = self.path.Blocked:Connect(function()
+						state.maid:GiveTask(self.path.Blocked:Connect(function()
 							self.stateMachine:setState("idle")
-						end)
-
-						local waypoints: { PathWaypoint } = self.path:GetWaypoints()
-						for _, waypoint in pairs(waypoints) do
-							self.humanoid:MoveTo(waypoint.Position)
-							self.humanoid.MoveToFinished:Wait()
-						end
+						end))
 						
-						self.stateMachine:setState("idle")
+						state.maid:GiveTask(task.defer(function()
+							local waypoints: { PathWaypoint } = self.path:GetWaypoints()
+							local currentWaypoint = 1
+							
+							state.maid:GiveTask(self.humanoid.MoveToFinished:Connect(function()
+								currentWaypoint += 1
+								self.humanoid:MoveTo(waypoints[currentWaypoint].Position)
+							end))
+
+							self.humanoid:MoveTo(waypoints[1].Position)
+							self.stateMachine:setState("idle")
+						end))
 					else
-						--print("moveto")
 						--# MoveTo
+						--print("moveto")
 						self.humanoid:MoveTo(randomPoint)
+						state.maid:GiveTask(self.humanoid.MoveToFinished:Once(function()
+							self.stateMachine:setState("idle")
+						end))
 					end
 				end,
 				exit = function(state: stateMachine.State & RoamingState)
-					if state.blockedCon then
-						state.blockedCon:Disconnect()
-						state.blockedCon = nil
+					if state.maid then
+						state.maid:DoCleaning()
 					end
 				end,
 			},
@@ -250,10 +256,13 @@ return class {
 		--# Animations
 		do
 			--# walking anim
+			local isWalking = false
 			self.humanoid.Running:Connect(function(speed)
-				if speed > 0 then
-					self:_playAnimation("ZombieWalk")
-				else
+				if speed > 0 and not isWalking then
+					isWalking = true
+					self:_playAnimation("ZombieWalk", 1 / 16 * self.humanoid.WalkSpeed)
+				elseif speed == 0 and isWalking then
+					isWalking = false
 					self:_stopAnimation("ZombieWalk")
 				end
 			end)
@@ -271,13 +280,16 @@ return class {
 	end,
 	
 	--[[
-		Plays an animation. If an animation does not exist in self.animations,
-		it will lazy load animation.
+		Plays an animation.
 	]]
-	_playAnimation = function(self: self, animationName: string)
+	_playAnimation = function(self: self, animationName: string, speed: number?)
 		local animation: Animation = game.ReplicatedFirst.shared.animations:FindFirstChild(animationName)
 		if not animation then
 			console.deverr(`Animation "{animationName} does not exist`)
+		end
+		
+		if speed then
+			params.expect("number", speed)
 		end
 		
 		local animator: Animator = self.humanoid:FindFirstChild("Animator")
@@ -294,9 +306,16 @@ return class {
 			}
 		end
 		
+		if speed then
+			animationTrack:AdjustSpeed(speed)
+		end
+		
+		if animationTrack.IsPlaying then
+			return
+		end
+		
 		--print("playing", animationTrack, animator:GetFullName())
 		animationTrack:Play()
-		task.wait(0.1)
 	end,
 	
 	--[[
@@ -311,7 +330,7 @@ return class {
 		local animator: Animator = self.humanoid:FindFirstChild("Animator")
 		local animationTrack: AnimationTrack? = animator:GetTrackByAnimationId(animation.AnimationId)
 		
-		if animationTrack then
+		if animationTrack and animationTrack.IsPlaying == true then
 			animationTrack:Stop()
 		end
 	end,
@@ -336,12 +355,13 @@ return class {
 				task.wait(SPAWN_RETRY_INTERVAL)
 				--print("repeat")
 				
-				local chunksWithoutPlayers: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
-				if not chunksWithoutPlayers or chunksWithoutPlayers and #chunksWithoutPlayers == 0 then
+				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithPlayers()
+				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
+					console.warn("No spawning chunks found", "Skipping...")
 					continue
 				end
 				
-				local randomChunk: chunkService.Chunk = chunksWithoutPlayers[math.random(1, #chunksWithoutPlayers)]
+				local randomChunk: chunkService.Chunk = spawnableChunks[math.random(1, #spawnableChunks)]
 				local chunkTopRight = Vector3.new(randomChunk.X + chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z + chunkService.CHUNK_SIZE / 2)
 				local chunkBottomLeft = Vector3.new(randomChunk.X - chunkService.CHUNK_SIZE / 2, 0, randomChunk.Z - chunkService.CHUNK_SIZE / 2)
 				

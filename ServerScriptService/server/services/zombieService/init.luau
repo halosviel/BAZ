@@ -42,7 +42,7 @@ local globalId = 0
 
 return {
 	constructor = function(self: self)
-		self.MAX_ZOMBIE_COUNT = 50
+		self.MAX_ZOMBIE_COUNT = 1
 		self.ZOMBIE_SPAWN_INTERVAL = { 0, 3 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
 		
 		self.zombies = {}
@@ -69,7 +69,9 @@ return {
 				globalId += 1
 				
 				local newZombie: zombie.Zombie = zombie.new(globalId)
-				newZombie:spawn()
+				task.defer(function()
+					newZombie:spawn()
+				end)
 				
 				table.insert(self.zombies, newZombie)
 				
