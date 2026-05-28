@@ -43,6 +43,7 @@ type self = {
 	spawned: boolean,
 
 	model: Model,
+	head: Part,
 	root: Part,
 	humanoid: Humanoid,
 
@@ -102,6 +103,7 @@ return class {
 		--# model
 		self.model = game.ReplicatedFirst.shared.assets.ZombieRig:Clone()
 		self.model.Name = `Zombie_{id}`
+		self.head = self.model:WaitForChild("Head")
 		self.root = self.model:WaitForChild("HumanoidRootPart")
 		self.humanoid = self.model:WaitForChild("Humanoid")
 		
@@ -115,8 +117,8 @@ return class {
 		self.runSpeed = math.random(RUN_SPEED.min, RUN_SPEED.max)
 		self.path = game.PathfindingService:CreatePath({
 			AgentRadius = 2,
-			AgentHeight = 5,
-			AgentCanJump = true,
+			AgentHeight = 3,
+			AgentCanJump = false,
 			AgentJumpHeight = 7,
 			AgentMaxSlope = 45
 		})
@@ -168,7 +170,7 @@ return class {
 					)
 					
 					local result: RaycastResult = workspace:Raycast(
-						self.root.Position, randomPoint - self.root.Position, self.raycastParams
+						self.head.Position, randomPoint - self.root.Position, self.raycastParams
 					)
 					if result then
 						--# Pathfind
@@ -262,7 +264,7 @@ return class {
 							--warn("chase") -- works >:3
 							
 							local result: RaycastResult = workspace:Raycast(
-								self.root.Position, rootPart.Position - self.root.Position, self.raycastParams
+								self.head.Position, rootPart.Position - self.root.Position, self.raycastParams
 							)
 							print(result, result.Instance)
 							
@@ -270,6 +272,7 @@ return class {
 							
 							local function moveToTarget()
 								warn("moveto")
+								isPathfinding = false
 								self.humanoid:MoveTo(rootPart.Position)
 							end
 							
@@ -292,11 +295,13 @@ return class {
 							--print("pathfind")
 							self.path:ComputeAsync(self.root.Position, rootPart.Position)
 							if self.path.Status == Enum.PathStatus.NoPath then
+								warn("pathfind reset")
 								isPathfinding = false
 								continue
 							end
 							
 							state.maid:GiveTask(self.path.Blocked:Connect(function()
+								warn("pathfind reset")
 								isPathfinding = false
 							end))
 							
@@ -311,10 +316,11 @@ return class {
 										self.humanoid:MoveTo(nextWaypoint.Position)
 									else
 										--# path finished
+										warn("pathfind reset a", waypoints)
 										isPathfinding = false
 									end
 								end))
-
+								
 								self.humanoid:MoveTo(waypoints[1].Position)
 							end))
 						end
