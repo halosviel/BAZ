@@ -169,11 +169,15 @@ return class {
 							
 							state.maid:GiveTask(self.humanoid.MoveToFinished:Connect(function()
 								currentWaypoint += 1
-								self.humanoid:MoveTo(waypoints[currentWaypoint].Position)
+								local nextWaypoint: PathWaypoint? = waypoints[currentWaypoint]
+								if nextWaypoint then
+									self.humanoid:MoveTo(nextWaypoint.Position)
+								else
+									self.stateMachine:setState("idle")
+								end
 							end))
 
 							self.humanoid:MoveTo(waypoints[1].Position)
-							self.stateMachine:setState("idle")
 						end))
 					else
 						--# MoveTo
