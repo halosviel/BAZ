@@ -15,9 +15,12 @@ local console = require("@game/ReplicatedFirst/pip/console")
 local params = require("@game/ReplicatedFirst/pip/params")
 local try = require("@game/ReplicatedFirst/pip/try")
 
-local stateMachine = require("@game/ReplicatedFirst/shared/utils/stateMachine")
-local maid = require("@game/ReplicatedFirst/shared/libs/maid")
 local chunkService = require("../chunkService")
+
+local ragdollService = require("@game/ReplicatedFirst/shared/libs/ragdollService")
+local stateMachine = require("@game/ReplicatedFirst/shared/utils/stateMachine")
+local TweenUtils = require("@game/ReplicatedFirst/shared/utils/tweenUtils")
+local maid = require("@game/ReplicatedFirst/shared/libs/maid")
 
 -- [TYPES]
 type BundledItems = { { AssetType: number } } --# sum type hackery bc roblox returns generic dict >:(
@@ -78,6 +81,7 @@ local WALK_SPEED = { min = 2, max = 6 }
 local RUN_SPEED = { min = 8, max = 18 }
 local ROAM_RADIUS = 40
 local SEARCH_RADIUS = 30 -- player search radius
+local DESTROY_DELAY = 3 -- how long the zombie will stay after dying before being deleted
 
 -->
 
@@ -214,10 +218,27 @@ return class {
 			},
 			dead = {
 				enter = function(state: stateMachine.State & DeadState)
+					--# stop anims
+					self:_stopAnimation("ZombieWalk")
+					self:_stopAnimation("ZombieArmIdle")
 					
-				end,
-				exit = function(state: stateMachine.State & DeadState)
-					
+					--# ragdoll
+					--[[
+						If the model falls into the void, Died fires and tries to ragdoll
+						then errors bc of RagdollService. Check for root Y pos to avoid err.
+						
+						Try operation for clean err
+					]]
+					if self.root.Position.Y > -50 then
+						try {
+							function()
+								ragdollService.Ragdoll(self.model)
+							end,
+							function(err: string)
+								console.warn("Caught unhandled RagdollService error", err, "Doing nothing...")
+							end,
+						}
+					end
 				end,
 			}
 		})
@@ -289,14 +310,22 @@ return class {
 					self:_stopAnimation("ZombieWalk")
 				end
 			end)
-
+			
 			self:_playAnimation("ZombieArmIdle")
 		end
 		
+		--# Player detection
 		do
-			--# Player detection
 			
 		end
+		
+		--# Ragdoll
+		ragdollService.SetupRagdoll(self.model)
+		
+		--# Death events
+		self.humanoid.Died:Connect(function()
+			self.stateMachine:setState("dead")
+		end)
 	end,
 	
 	_setWalkSpeed = function(self: self, walkSpeed: number)
@@ -346,7 +375,7 @@ return class {
 		if not animation then
 			console.deverr(`Animation "{animationName} does not exist`)
 		end
-
+		
 		local animator: Animator = self.humanoid:FindFirstChild("Animator")
 		local animationTrack: AnimationTrack? = animator:GetTrackByAnimationId(animation.AnimationId)
 		
@@ -422,17 +451,19 @@ return class {
 	end,
 	
 	Destroy = function(self: self)
-		if self.model then
-			self.model:Destroy()
-			self.model = nil
-		end
-		if self.stateMachine then
-			self.stateMachine:Destroy()
-			self.stateMachine = nil
-		end
-		
-		setmetatable(self, nil)
-		table.clear(self)
+		task.delay(DESTROY_DELAY, function()
+			if self.model then
+				self.model:Destroy()
+				self.model = nil
+			end
+			if self.stateMachine then
+				self.stateMachine:Destroy()
+				self.stateMachine = nil
+			end
+			
+			setmetatable(self, nil)
+			table.clear(self)
+		end)
 	end,
 	
 	ready = function(self: self)

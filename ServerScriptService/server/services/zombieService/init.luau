@@ -77,12 +77,14 @@ return {
 				
 				--# lifecycle
 				local zombieMaid: maid.Maid = maid.new()
+				zombieMaid:GiveTask(newZombie)
+				
 				local function cleanup()
 					if not newZombie then
 						return
 					end
 					
-					--print(`cleaned zombie {newZombie.id}`)
+					print(`cleaned zombie {newZombie.id}`)
 					table.remove(self.zombies, table.find(self.zombies, newZombie))
 					
 					zombieMaid:DoCleaning()
