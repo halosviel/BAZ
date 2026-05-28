@@ -257,18 +257,35 @@ return class {
 		do
 			--# walking anim
 			local isWalking = false
+			local currentSpeed = 0
+			
 			self.humanoid.Running:Connect(function(speed)
 				if speed > 0 and not isWalking then
+					--# play walk anim
 					isWalking = true
-					self:_playAnimation("ZombieWalk", 1 / 16 * self.humanoid.WalkSpeed)
+					currentSpeed = speed
+					self:_playAnimation("ZombieWalk", 1 / 16 * speed)
+				elseif speed > 0 and speed ~= currentSpeed then
+					--# adjust walk anim speed
+					currentSpeed = speed
+					local animationTrack = self.humanoid:FindFirstChild("Animator"):GetTrackByAnimationId(
+						game.ReplicatedFirst.shared.animations.ZombieWalk.AnimationId
+					)
+					
+					if animationTrack then
+						animationTrack:AdjustSpeed(1 / 16 * speed)
+					end
 				elseif speed == 0 and isWalking then
+					--# stop walk anim
 					isWalking = false
+					currentSpeed = 0
+					
 					self:_stopAnimation("ZombieWalk")
 				end
 			end)
+
+			self:_playAnimation("ZombieArmIdle")
 		end
-		
-		self:_playAnimation("ZombieArmIdle")
 	end,
 	
 	_setWalkSpeed = function(self: self, walkSpeed: number)
@@ -282,14 +299,10 @@ return class {
 	--[[
 		Plays an animation.
 	]]
-	_playAnimation = function(self: self, animationName: string, speed: number?)
+	_playAnimation = function(self: self, animationName: string)
 		local animation: Animation = game.ReplicatedFirst.shared.animations:FindFirstChild(animationName)
 		if not animation then
 			console.deverr(`Animation "{animationName} does not exist`)
-		end
-		
-		if speed then
-			params.expect("number", speed)
 		end
 		
 		local animator: Animator = self.humanoid:FindFirstChild("Animator")
@@ -304,10 +317,6 @@ return class {
 					console.warn(`Failed to load animation "{animationName}"`, `Err: {err}`)
 				end,
 			}
-		end
-		
-		if speed then
-			animationTrack:AdjustSpeed(speed)
 		end
 		
 		if animationTrack.IsPlaying then
