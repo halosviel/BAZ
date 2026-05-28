@@ -214,7 +214,8 @@ return class {
 	_setup = function(self: self)
 		--# Dress the rig
 		do
-			local humanoidDescription: HumanoidDescription = self.humanoid:WaitForChild("HumanoidDescription")
+			--# NOTE: humanoidDesc in Humanoid & Character behaviour weirdly. Test to see which one works best
+			local humanoidDescription: HumanoidDescription = self.model:WaitForChild("HumanoidDescription")
 			
 			--# torso color
 			humanoidDescription.TorsoColor = TORSO_COLORS[math.random(1, #TORSO_COLORS)]
@@ -235,9 +236,9 @@ return class {
 			end
 			
 			local bundledItems: BundledItems = itemDetails.BundledItems
-			for _, obj in bundledItems do
-				if obj.AssetType == "DynamicHead" then --# NOTE: AssetType might change
-					humanoidDescription.Head = obj.Id
+			for _, item: { AssetType: string, Id: number} in bundledItems do
+				if item.AssetType == "DynamicHead" then --# NOTE: AssetType might change
+					humanoidDescription.Head = item.Id
 					break
 				end
 			end
