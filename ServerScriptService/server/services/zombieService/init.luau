@@ -69,9 +69,7 @@ return {
 				globalId += 1
 				
 				local newZombie: zombie.Zombie = zombie.new(globalId)
-				task.defer(function()
-					newZombie:spawn()
-				end)
+				newZombie:spawn()
 				
 				table.insert(self.zombies, newZombie)
 				
