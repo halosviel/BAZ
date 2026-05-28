@@ -355,7 +355,7 @@ return class {
 				task.wait(SPAWN_RETRY_INTERVAL)
 				--print("repeat")
 				
-				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithPlayers()
+				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
 				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
 					console.warn("No spawning chunks found", "Skipping...")
 					continue
