@@ -31,7 +31,9 @@ type IdleState = {
 type RoamingState = {
 	maid: maid.Maid?
 }
-type AttackingState = {}
+type AttackingState = {
+	maid: maid.Maid?
+}
 type BurningState = {}
 type DeadState = {}
 
@@ -43,12 +45,15 @@ type self = {
 	model: Model,
 	root: Part,
 	humanoid: Humanoid,
+
+	maid: maid.Maid,
+	target: Model?,
+	searchCoroutine: thread?,
 	
 	walkSpeed: number,
 	runSpeed: number,
 	path: Path,
 	raycastParams: RaycastParams,
-	maid: maid.Maid,
 	stateMachine: stateMachine.StateMachine,
 	
 	-- [FUNCTIONS]
@@ -75,13 +80,13 @@ local TORSO_COLORS = {
 local HEADS = {
 	48108254826353, 189682885115008, 274897006582337, 107770861134701, 40329797566983, 69132779144008, 
 }
-local SPAWN_RETRY_INTERVAL = 1
-local SPAWN_RAYCAST_Y = 999
-local IDLE_DURATION = { min = 1, max = 4 }
+local SPAWN_RETRY_INTERVAL = 1 -- if spawn fails, retry after this time
+local SPAWN_RAYCAST_Y = 999 -- how far up the spawn raycast starts from (adjust for tall terrain)
+local IDLE_DURATION = { min = 1, max = 4 } -- how long the zombie will stand still for while idle
 local WALK_SPEED = { min = 2, max = 6 }
 local RUN_SPEED = { min = 8, max = 18 }
-local ROAM_RADIUS = 40
-local SEARCH_RADIUS = 30 -- player search radius
+local ROAM_RADIUS = 40 -- how far from itself the zombie will traverse during roaming
+local SEARCH_RADIUS = 50 -- player search/chase radius
 local SEARCH_SLOW_INTERVAL = 3 -- search update interval with no target
 local SEARCH_FAST_INTERVAL = 0.2 -- search update interval while chasing target
 local DESTROY_DELAY = 3 -- how long the zombie will stay after dying before being deleted
@@ -100,6 +105,11 @@ return class {
 		self.root = self.model:WaitForChild("HumanoidRootPart")
 		self.humanoid = self.model:WaitForChild("Humanoid")
 		
+		--# state
+		self.maid = maid.new()
+		self.target = nil
+		self.searchCoroutine = nil
+		
 		--# behaviour
 		self.walkSpeed = math.random(WALK_SPEED.min, WALK_SPEED.max)
 		self.runSpeed = math.random(RUN_SPEED.min, RUN_SPEED.max)
@@ -112,7 +122,6 @@ return class {
 		})
 		self.raycastParams = RaycastParams.new()
 		self.raycastParams.ExcludeInstances = { self.model }
-		self.maid = maid.new()
 		self.stateMachine = stateMachine.new(`ZOMBIE_{id}`, {
 			idle = {
 				thread = nil,
@@ -185,6 +194,7 @@ return class {
 								if nextWaypoint then
 									self.humanoid:MoveTo(nextWaypoint.Position)
 								else
+									--# path finished
 									self.stateMachine:setState("idle")
 								end
 							end))
@@ -201,18 +211,130 @@ return class {
 					end
 				end,
 				exit = function(state: stateMachine.State & RoamingState)
+					--# cancel movement??
+					--# chasing *should* overwrite and use its own moveto, so probs dont need ts
+					--self.humanoid:MoveTo(self.root.Position)
+					
 					if state.maid then
 						state.maid:DoCleaning()
 						state.maid = nil
 					end
 				end,
 			},
+			
+			--# NOTE: duplicate logic, so just read notes from roaming state above ^^
 			attacking = {
+				maid = nil,
 				enter = function(state: stateMachine.State & AttackingState)
+					state.maid = maid.new()
+					self.maid:GiveTask(state.maid)
 					self:_setWalkSpeed(self.runSpeed)
+					
+					local isPathfinding = false --# flag so loop can ignore whilst pathfinding
+					
+					state.maid:GiveTask(task.defer(function()
+						while self.target do
+							task.wait(SEARCH_FAST_INTERVAL)
+							if isPathfinding then
+								continue
+							end
+							
+							local rootPart: Part? = self.target:FindFirstChild("HumanoidRootPart")
+							if not rootPart then
+								--# reset the chase by resetting state
+								self.stateMachine:setState("idle")
+								break
+							end
+							if (self.root.Position - rootPart.Position).Magnitude >= SEARCH_RADIUS then
+								self.stateMachine:setState("idle")
+								break
+							end
+							
+							local humanoid: Humanoid? = self.target:FindFirstChild("Humanoid")
+							if not humanoid then
+								self.stateMachine:setState("idle")
+								break
+							end
+							if humanoid.Health == 0 then
+								self.stateMachine:setState("idle")
+								break
+							end
+							--warn("chase") -- works >:3
+							
+							local result: RaycastResult = workspace:Raycast(
+								self.root.Position, rootPart.Position - self.root.Position, self.raycastParams
+							)
+							print(result, result.Instance)
+							
+							--# MoveTo conditions
+							
+							local function moveToTarget()
+								warn("moveto")
+								self.humanoid:MoveTo(rootPart.Position)
+							end
+							
+							if not result or result and not result.Instance then
+								moveToTarget()
+								continue
+							end
+							
+							if result.Instance:IsDescendantOf(self.target) then
+								moveToTarget()
+								continue
+							end
+							
+							--# Pathfind
+							
+							warn("pathfind")
+							isPathfinding = true
+							
+							--# if pathfind fails, it will change state to idle
+							--print("pathfind")
+							self.path:ComputeAsync(self.root.Position, rootPart.Position)
+							if self.path.Status == Enum.PathStatus.NoPath then
+								isPathfinding = false
+								continue
+							end
+							
+							state.maid:GiveTask(self.path.Blocked:Connect(function()
+								isPathfinding = false
+							end))
+							
+							state.maid:GiveTask(task.defer(function()
+								local waypoints: { PathWaypoint } = self.path:GetWaypoints()
+								local currentWaypoint = 1
+								
+								state.maid:GiveTask(self.humanoid.MoveToFinished:Connect(function()
+									currentWaypoint += 1
+									local nextWaypoint: PathWaypoint? = waypoints[currentWaypoint]
+									if nextWaypoint then
+										self.humanoid:MoveTo(nextWaypoint.Position)
+									else
+										--# path finished
+										isPathfinding = false
+									end
+								end))
+
+								self.humanoid:MoveTo(waypoints[1].Position)
+							end))
+						end
+						
+						--# fallback in case self.target suddenly becomes nil
+						self.stateMachine:setState("idle")
+					end))
 				end,
 				exit = function(state: stateMachine.State & AttackingState)
+					if state.maid then
+						state.maid:DoCleaning()
+						state.maid = nil
+					end
 					
+					self.target = nil
+					
+					--# resume player search thread
+					if self.searchCoroutine then
+						coroutine.resume(self.searchCoroutine)
+					end
 				end,
 			},
 			burning = {
@@ -271,7 +393,7 @@ return class {
 				task.wait(SPAWN_RETRY_INTERVAL)
 				--print("repeat")
 				
-				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
+				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithPlayers()
 				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
 					console.warn("No spawning chunks found", "Skipping...")
 					continue
@@ -388,8 +510,68 @@ return class {
 		end
 		
 		--# Player detection
+		--[[
+			LOGIC:
+			- Start a new thread that searches for the first player in range every
+			  SEARCH_SLOW_INTERVAL seconds.
+			- If a player is found, it will set the player's character as self.target
+			  and switches state to attacking.
+			- The thread will pause it self, and the attacking state handles all chasing
+			  and block breaking logic.
+			- The thread continues once the attacking state changes state from within
+			  itself.
+		]]
 		do
-			self.maid:GiveTask()
+			--# construct the thread
+			self.searchCoroutine = coroutine.create(function()
+				while true do
+					--print("looking for players")
+					task.wait(SEARCH_SLOW_INTERVAL)
+					
+					if self.target then
+						continue
+					end
+					
+					--# look for a target
+					--# searches for the first player within range
+					--# ( save some performance against table.sort i guess + intentionally weirder behaviour :D )
+					for _, player in game.Players:GetPlayers() do
+						local character: Model? = player.Character
+						if not character then
+							continue
+						end
+						
+						local rootPart: Part? = character:FindFirstChild("HumanoidRootPart")
+						if not rootPart then
+							continue
+						end
+						
+						local humanoid: Humanoid? = character:FindFirstChild("Humanoid")
+						if not humanoid then
+							continue
+						end
+						if humanoid.Health == 0 then
+							continue
+						end
+						
+						if (self.root.Position - rootPart.Position).Magnitude >= SEARCH_RADIUS then
+							continue
+						end
+						--print("player found")
+						
+						self.target = character
+						self.stateMachine:setState("attacking")
+						
+						--# yield the thread
+						coroutine.yield()
+						break
+					end
+				end
+			end)
+			
+			--# pass it to maid & start thread
+			self.maid:GiveTask(self.searchCoroutine)
+			coroutine.resume(self.searchCoroutine)
 		end
 		
 		--# Ragdoll

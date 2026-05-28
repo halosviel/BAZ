@@ -44,8 +44,8 @@ local globalId = 0
 
 return {
 	constructor = function(self: self)
-		self.MAX_ZOMBIE_COUNT = 69
-		self.ZOMBIE_SPAWN_INTERVAL = { 0, 3 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
+		self.MAX_ZOMBIE_COUNT = 1
+		self.ZOMBIE_SPAWN_INTERVAL = { 0, 0 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
 		
 		self.zombies = {}
 		self.spawnThread = nil
