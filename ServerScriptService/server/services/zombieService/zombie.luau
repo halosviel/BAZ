@@ -389,7 +389,7 @@ return class {
 		
 		--# Player detection
 		do
-			
+			self.maid:GiveTask()
 		end
 		
 		--# Ragdoll
@@ -466,6 +466,10 @@ return class {
 			if self.stateMachine then
 				self.stateMachine:Destroy()
 				self.stateMachine = nil
+			end
+			if self.maid then
+				self.maid:DoCleaning()
+				self.maid = nil
 			end
 			
 			setmetatable(self, nil)

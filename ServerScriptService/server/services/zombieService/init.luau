@@ -74,7 +74,7 @@ return {
 				
 				table.insert(self.zombies, newZombie)
 				
-				--# lifecycle
+				--# lifecycle management
 				local zombieMaid: maid.Maid = maid.new()
 				zombieMaid:GiveTask(newZombie)
 				
@@ -92,12 +92,12 @@ return {
 				end
 				
 				zombieMaid:GiveTask(newZombie.humanoid.Died:Connect(cleanup))
+				zombieMaid:GiveTask(newZombie.model.Destroying:Connect(cleanup))
 				zombieMaid:GiveTask(newZombie.root.AncestryChanged:Connect(function(child: Instance, parent: Instance)
 					if child == nil or parent == nil then
 						cleanup()
 					end
 				end))
-				zombieMaid:GiveTask(newZombie.model.Destroying:Connect(cleanup))
 				
 				--# wait
 				local min: number = self.ZOMBIE_SPAWN_INTERVAL[1]
