@@ -54,6 +54,7 @@ type self = {
 	_playAnimation: ( self: self, animationName: string ) -> nil,
 	_stopAnimation: ( self: self, animationName: string ) -> nil,
 	spawn: ( self: self ) -> nil,
+	Destroy: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
 }
 export type Zombie = self
@@ -76,6 +77,7 @@ local IDLE_DURATION = { min = 1, max = 4 }
 local WALK_SPEED = { min = 2, max = 6 }
 local RUN_SPEED = { min = 8, max = 18 }
 local ROAM_RADIUS = 40
+local SEARCH_RADIUS = 30 -- player search radius
 
 -->
 
@@ -290,6 +292,11 @@ return class {
 
 			self:_playAnimation("ZombieArmIdle")
 		end
+		
+		do
+			--# Player detection
+			
+		end
 	end,
 	
 	_setWalkSpeed = function(self: self, walkSpeed: number)
@@ -412,6 +419,20 @@ return class {
 			self:_setup()
 			self.stateMachine:setState("idle")
 		end)
+	end,
+	
+	Destroy = function(self: self)
+		if self.model then
+			self.model:Destroy()
+			self.model = nil
+		end
+		if self.stateMachine then
+			self.stateMachine:Destroy()
+			self.stateMachine = nil
+		end
+		
+		setmetatable(self, nil)
+		table.clear(self)
 	end,
 	
 	ready = function(self: self)
