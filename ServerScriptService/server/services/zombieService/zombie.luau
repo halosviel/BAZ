@@ -19,7 +19,7 @@ local chunkService = require("../chunkService")
 
 local ragdollService = require("@game/ReplicatedFirst/shared/libs/ragdollService")
 local stateMachine = require("@game/ReplicatedFirst/shared/utils/stateMachine")
-local TweenUtils = require("@game/ReplicatedFirst/shared/utils/tweenUtils")
+local signal = require("@game/ReplicatedFirst/shared/libs/cuteSignal")
 local maid = require("@game/ReplicatedFirst/shared/libs/maid")
 
 -- [TYPES]
@@ -88,7 +88,7 @@ local WALK_SPEED = { min = 2, max = 6 }
 local RUN_SPEED = { min = 8, max = 18 }
 local ROAM_RADIUS = 40 -- how far from itself the zombie will traverse during roaming
 local SEARCH_RADIUS = 50 -- player search/chase radius
-local SEARCH_SLOW_INTERVAL = 3 -- search update interval with no target
+local SEARCH_SLOW_INTERVAL = 1 -- search update interval with no target
 local SEARCH_FAST_INTERVAL = 0.2 -- search update interval while chasing target
 local DESTROY_DELAY = 3 -- how long the zombie will stay after dying before being deleted
 
@@ -232,110 +232,185 @@ return class {
 					self.maid:GiveTask(state.maid)
 					self:_setWalkSpeed(self.runSpeed)
 					
-					local isPathfinding = false --# flag so loop can ignore whilst pathfinding
+					--# helpers
+					local pathfindingTask: thread?
+					local pathfindingCon: RBXScriptConnection?
+					local pathfindingFinished = false --# flag set within pathfinding() for loop to cancel pathfinding
 					
-					state.maid:GiveTask(task.defer(function()
-						while self.target do
-							task.wait(SEARCH_FAST_INTERVAL)
-							if isPathfinding then
-								continue
+					local function exit()
+						--warn("exit")
+						self.stateMachine:setState("idle")
+					end
+					
+					local function moveToTarget()
+						local rootPart: Part? = self.target:FindFirstChild("HumanoidRootPart")
+						if not rootPart then
+							return
+						end
+						
+						--# clean pathfinding
+						
+						if pathfindingTask then
+							task.cancel(pathfindingTask)
+							pathfindingTask = nil
+						end
+						if pathfindingCon then
+							pathfindingCon:Disconnect()
+							pathfindingCon = nil
+						end
+						
+						--# move to target
+						
+						--warn("moveto")
+						self.humanoid:MoveTo(rootPart.Position)
+					end
+					
+					local function pathfindToTarget()
+						local rootPart: Part? = self.target:FindFirstChild("HumanoidRootPart")
+						if not rootPart then
+							return
+						end
+						
+						self.path:ComputeAsync(self.root.Position, rootPart.Position)
+						if self.path.Status == Enum.PathStatus.NoPath then
+							--warn("no path")
+							pathfindingFinished = true
+							return
+						end
+						
+						state.maid:GiveTask(self.path.Blocked:Connect(function()
+							--warn("path blocked")
+							pathfindingFinished = true
+						end))
+						
+						pathfindingTask = task.defer(function()
+							local waypoints: { PathWaypoint } = self.path:GetWaypoints()
+							if waypoints == nil
+								or waypoints and #waypoints == 0
+								or waypoints and waypoints[1] == nil
+							then
+								--warn("no waypoints")
+								pathfindingFinished = true
+								return
 							end
 							
-							--# Target validation
+							local currentWaypoint = 2 --# override to waypoint 2 due to back flickering
 							
+							--# must make new con var; dont give to maid -> cancelling task does not clean connections
+							pathfindingCon = self.humanoid.MoveToFinished:Connect(function()
+								currentWaypoint += 1
+								local nextWaypoint: PathWaypoint? = waypoints[currentWaypoint]
+								if nextWaypoint then
+									self.humanoid:MoveTo(nextWaypoint.Position)
+								else
+									--# path finished
+									pathfindingFinished = true
+									--warn("path finished")
+									return
+								end
+							end)
+							
+							--warn("pathfind")
+							state.maid:GiveTask(pathfindingCon)
+							self.humanoid:MoveTo(waypoints[currentWaypoint].Position)
+						end)
+					end
+					
+					--[[
+						LOGIC:
+						
+						Every SEARCH_FAST_INTERVAL seconds:
+						- check to see if target exists/is valid/in range
+						- raycast to see if they are in line of sight
+						- if they are, cancel any current pathfinding task and MoveTo() them
+						- if not, then pathfind to them
+						
+						The loop should run as long as the state is active.
+					]]
+					state.maid:GiveTask(task.defer(function()
+						while true do
+							task.wait(SEARCH_FAST_INTERVAL)
+							
+							--# Validate target
+							
+							if not self.target then
+								exit()
+								return
+							end
+
 							local rootPart: Part? = self.target:FindFirstChild("HumanoidRootPart")
 							if not rootPart then
-								--# reset the chase by resetting state
-								self.stateMachine:setState("idle")
-								break
+								exit()
+								return
 							end
 							if (self.root.Position - rootPart.Position).Magnitude >= SEARCH_RADIUS then
-								self.stateMachine:setState("idle")
-								break
+								exit()
+								return
 							end
-							
+
 							local humanoid: Humanoid? = self.target:FindFirstChild("Humanoid")
 							if not humanoid then
-								self.stateMachine:setState("idle")
-								break
+								exit()
+								return
 							end
 							if humanoid.Health == 0 then
-								self.stateMachine:setState("idle")
-								break
+								exit()
+								return
 							end
-							--warn("chase") -- works >:3
 							
 							--# Raycast
 							
 							local result: RaycastResult = workspace:Raycast(
 								self.head.Position, rootPart.Position - self.root.Position, self.raycastParams
 							)
-							print(result, result and result.Instance)
 							
 							--# MoveTo conditions
 							
-							local function moveToTarget()
-								warn("moveto")
-								isPathfinding = false
-								self.humanoid:MoveTo(rootPart.Position)
+							if not result then --# no obstruction
+								moveToTarget()
+								continue
 							end
 							
-							if result then
-								if result.Instance then
-									--# Pathfind
-									--# If pathfind fails, it will turn the pathfind flag off,
-									--# letting the next iteration occur.
-									
-									warn("pathfind")
-									isPathfinding = true
-									
-									--print("pathfind")
-									self.path:ComputeAsync(self.root.Position, rootPart.Position)
-									if self.path.Status == Enum.PathStatus.NoPath then
-										warn("pathfind reset")
-										isPathfinding = false
-										continue
-									end
-									
-									state.maid:GiveTask(self.path.Blocked:Connect(function()
-										warn("pathfind reset")
-										isPathfinding = false
-									end))
-									
-									state.maid:GiveTask(task.defer(function()
-										local waypoints: { PathWaypoint } = self.path:GetWaypoints()
-										local currentWaypoint = 1
-										
-										state.maid:GiveTask(self.humanoid.MoveToFinished:Connect(function()
-											currentWaypoint += 1
-											local nextWaypoint: PathWaypoint? = waypoints[currentWaypoint]
-											if nextWaypoint then
-												self.humanoid:MoveTo(nextWaypoint.Position)
-											else
-												--# path finished
-												warn("pathfind reset a", waypoints)
-												isPathfinding = false
-											end
-										end))
-										
-										self.humanoid:MoveTo(waypoints[1].Position)
-									end))
-								else
-									moveToTarget()
-								end
-							else
+							if result and not result.Instance then --# no obstruction
 								moveToTarget()
+								continue
 							end
+							
+							if result and result.Instance:IsDescendantOf(self.target) then --# direct line of sight
+								moveToTarget()
+								continue
+							end
+							
+							--# Pathfind
+							
+							if pathfindingFinished then --# pathfinding finished/blocked/failed, reset it.
+								if pathfindingTask then
+									task.cancel(pathfindingTask)
+									pathfindingTask = nil
+								end
+								if pathfindingCon then
+									pathfindingCon:Disconnect()
+									pathfindingCon = nil
+								end
+							end
+							
+							if pathfindingTask or pathfindingCon then
+								continue
+							end
+							
+							pathfindToTarget()
 						end
-						
-						--# fallback in case self.target suddenly becomes nil
-						self.stateMachine:setState("idle")
 					end))
 				end,
 				exit = function(state: stateMachine.State & AttackingState)
 					if state.maid then
 						state.maid:DoCleaning()
 						state.maid = nil
+					end
+					
+					if state.subMaid then
+						state.subMaid:DoCleaning()
+						state.subMaid = nil
 					end
 					
 					self.target = nil
@@ -402,7 +477,7 @@ return class {
 				task.wait(SPAWN_RETRY_INTERVAL)
 				--print("repeat")
 				
-				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithPlayers()
+				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
 				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
 					console.warn("No spawning chunks found", "Skipping...")
 					continue
