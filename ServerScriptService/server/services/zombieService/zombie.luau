@@ -50,6 +50,7 @@ type self = {
 	maid: maid.Maid,
 	target: Model?,
 	searchCoroutine: thread?,
+	lastDamage: number,
 	
 	walkSpeed: number,
 	runSpeed: number,
@@ -91,6 +92,8 @@ local SEARCH_RADIUS = 50 -- player search/chase radius
 local SEARCH_SLOW_INTERVAL = 1 -- search update interval with no target
 local SEARCH_FAST_INTERVAL = 0.2 -- search update interval while chasing target
 local DESTROY_DELAY = 3 -- how long the zombie will stay after dying before being deleted
+local DAMAGE = { min = 5, max = 20 } -- randomised per hit
+local DAMAGE_INTERVAL = 1
 
 -->
 
@@ -111,6 +114,7 @@ return class {
 		self.maid = maid.new()
 		self.target = nil
 		self.searchCoroutine = nil
+		self.lastDamage = os.clock()
 		
 		--# behaviour
 		self.walkSpeed = math.random(WALK_SPEED.min, WALK_SPEED.max)
@@ -478,7 +482,7 @@ return class {
 				task.wait(SPAWN_RETRY_INTERVAL)
 				--print("repeat")
 				
-				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
+				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithPlayers()
 				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
 					console.warn("No spawning chunks found", "Skipping...")
 					continue
@@ -659,13 +663,41 @@ return class {
 			coroutine.resume(self.searchCoroutine)
 		end
 		
-		--# Ragdoll
-		ragdollService.SetupRagdoll(self.model)
+		--# Player damaging
+		do
+			self.maid:GiveTask(self.root.Touched:Connect(function(hit: Instance)
+				if not hit:IsDescendantOf(self.target) then
+					return
+				end
+				
+				local humanoid: Humanoid? = self.target:FindFirstChild("Humanoid")
+				if not humanoid then
+					return
+				end
+				
+				if os.clock() - self.lastDamage < DAMAGE_INTERVAL then
+					return
+				end
+				self.lastDamage = os.clock()
+				
+				local damage: number = math.random(DAMAGE.min, DAMAGE.max)
+				humanoid.Health -= damage
+				
+				self:_playAnimation("ZombieArmAttack")
+			end))
+		end
+		
+		--# Ragdoll setup
+		do
+			ragdollService.SetupRagdoll(self.model)
+		end
 		
 		--# Death events
-		self.humanoid.Died:Connect(function()
-			self.stateMachine:setState("dead")
-		end)
+		do
+			self.humanoid.Died:Connect(function()
+				self.stateMachine:setState("dead")
+			end)
+		end
 	end,
 	
 	_setWalkSpeed = function(self: self, walkSpeed: number)

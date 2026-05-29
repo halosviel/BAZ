@@ -71,7 +71,6 @@ return {
 				globalId += 1
 				
 				local newZombie: zombie.Zombie = zombie.new(globalId)
-				
 				table.insert(self.zombies, newZombie)
 				
 				--# lifecycle management
