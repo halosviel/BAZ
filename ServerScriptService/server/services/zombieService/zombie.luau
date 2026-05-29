@@ -241,6 +241,8 @@ return class {
 								continue
 							end
 							
+							--# Target validation
+							
 							local rootPart: Part? = self.target:FindFirstChild("HumanoidRootPart")
 							if not rootPart then
 								--# reset the chase by resetting state
@@ -263,10 +265,12 @@ return class {
 							end
 							--warn("chase") -- works >:3
 							
+							--# Raycast
+							
 							local result: RaycastResult = workspace:Raycast(
 								self.head.Position, rootPart.Position - self.root.Position, self.raycastParams
 							)
-							print(result, result.Instance)
+							print(result, result and result.Instance)
 							
 							--# MoveTo conditions
 							
@@ -276,53 +280,52 @@ return class {
 								self.humanoid:MoveTo(rootPart.Position)
 							end
 							
-							if not result or result and not result.Instance then
-								moveToTarget()
-								continue
-							end
-							
-							if result.Instance:IsDescendantOf(self.target) then
-								moveToTarget()
-								continue
-							end
-							
-							--# Pathfind
-							
-							warn("pathfind")
-							isPathfinding = true
-							
-							--# if pathfind fails, it will change state to idle
-							--print("pathfind")
-							self.path:ComputeAsync(self.root.Position, rootPart.Position)
-							if self.path.Status == Enum.PathStatus.NoPath then
-								warn("pathfind reset")
-								isPathfinding = false
-								continue
-							end
-							
-							state.maid:GiveTask(self.path.Blocked:Connect(function()
-								warn("pathfind reset")
-								isPathfinding = false
-							end))
-							
-							state.maid:GiveTask(task.defer(function()
-								local waypoints: { PathWaypoint } = self.path:GetWaypoints()
-								local currentWaypoint = 1
-								
-								state.maid:GiveTask(self.humanoid.MoveToFinished:Connect(function()
-									currentWaypoint += 1
-									local nextWaypoint: PathWaypoint? = waypoints[currentWaypoint]
-									if nextWaypoint then
-										self.humanoid:MoveTo(nextWaypoint.Position)
-									else
-										--# path finished
-										warn("pathfind reset a", waypoints)
+							if result then
+								if result.Instance then
+									--# Pathfind
+									--# If pathfind fails, it will turn the pathfind flag off,
+									--# letting the next iteration occur.
+									
+									warn("pathfind")
+									isPathfinding = true
+									
+									--print("pathfind")
+									self.path:ComputeAsync(self.root.Position, rootPart.Position)
+									if self.path.Status == Enum.PathStatus.NoPath then
+										warn("pathfind reset")
 										isPathfinding = false
+										continue
 									end
-								end))
-								
-								self.humanoid:MoveTo(waypoints[1].Position)
-							end))
+									
+									state.maid:GiveTask(self.path.Blocked:Connect(function()
+										warn("pathfind reset")
+										isPathfinding = false
+									end))
+									
+									state.maid:GiveTask(task.defer(function()
+										local waypoints: { PathWaypoint } = self.path:GetWaypoints()
+										local currentWaypoint = 1
+										
+										state.maid:GiveTask(self.humanoid.MoveToFinished:Connect(function()
+											currentWaypoint += 1
+											local nextWaypoint: PathWaypoint? = waypoints[currentWaypoint]
+											if nextWaypoint then
+												self.humanoid:MoveTo(nextWaypoint.Position)
+											else
+												--# path finished
+												warn("pathfind reset a", waypoints)
+												isPathfinding = false
+											end
+										end))
+										
+										self.humanoid:MoveTo(waypoints[1].Position)
+									end))
+								else
+									moveToTarget()
+								end
+							else
+								moveToTarget()
+							end
 						end
 						
 						--# fallback in case self.target suddenly becomes nil
@@ -522,7 +525,7 @@ return class {
 			  SEARCH_SLOW_INTERVAL seconds.
 			- If a player is found, it will set the player's character as self.target
 			  and switches state to attacking.
-			- The thread will pause it self, and the attacking state handles all chasing
+			- The thread will pause itself, and the attacking state handles all chasing
 			  and block breaking logic.
 			- The thread continues once the attacking state changes state from within
 			  itself.
