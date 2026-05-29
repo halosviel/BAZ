@@ -135,6 +135,7 @@ return class {
 					]]
 					local waitDuration = math.random(IDLE_DURATION.min * 10, IDLE_DURATION.max * 10) / 10
 					state.thread = task.delay(waitDuration, function()
+						print(self)
 						self.stateMachine:setState("roaming")
 					end)
 				end,
