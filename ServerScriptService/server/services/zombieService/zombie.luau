@@ -663,7 +663,7 @@ return class {
 			coroutine.resume(self.searchCoroutine)
 		end
 		
-		--# Player damaging
+		--# Hit detection
 		do
 			self.maid:GiveTask(self.root.Touched:Connect(function(hit: Instance)
 				if not hit:IsDescendantOf(self.target) then
