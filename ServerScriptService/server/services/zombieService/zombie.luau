@@ -666,6 +666,10 @@ return class {
 		--# Hit detection
 		do
 			self.maid:GiveTask(self.root.Touched:Connect(function(hit: Instance)
+				if not self.target then
+					return
+				end
+				
 				if not hit:IsDescendantOf(self.target) then
 					return
 				end
