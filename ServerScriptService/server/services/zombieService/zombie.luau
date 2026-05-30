@@ -139,7 +139,6 @@ return class {
 					]]
 					local waitDuration = math.random(IDLE_DURATION.min * 10, IDLE_DURATION.max * 10) / 10
 					state.thread = task.delay(waitDuration, function()
-						print(self)
 						self.stateMachine:setState("roaming")
 					end)
 				end,
@@ -187,6 +186,9 @@ return class {
 							return
 						end
 						
+						if not state.maid then
+							print("NO MAIDENS?!?!?!", self)
+						end
 						state.maid:GiveTask(self.path.Blocked:Connect(function()
 							self.stateMachine:setState("idle")
 						end))
@@ -484,7 +486,7 @@ return class {
 				
 				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithPlayers()
 				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
-					console.warn("No spawning chunks found", "Skipping...")
+					console.warn("No spawnable chunks found", "Skipping...")
 					continue
 				end
 				

@@ -33,6 +33,7 @@ type self = {
 
 	-- [ENTRIES]
 	mouse: Mouse,
+	activeBrickTool: Tool?,
 	brickPreview: Part?,
 	brickRotation: number,
 	lastBuildTimestamp: number,
@@ -52,6 +53,7 @@ export type BrickServiceClient = self
 return {
 	constructor = function(self: self)
 		self.mouse = game.Players.LocalPlayer:GetMouse()
+		self.activeBrickTool = nil
 		self.brickPreview = nil
 		self.brickRotation = 0
 		self.lastBuildTimestamp = os.clock()
@@ -213,23 +215,41 @@ return {
 		
 		--# wait for the server to clone the tool, then listen for events
 		
-		local brickTool: Tool? = game.Players.LocalPlayer.Backpack:WaitForChild(config.buildToolName)
-		local brickPart: Part? = brickTool:WaitForChild("Handle")
-		brickPart.Transparency = 0.7
-		
-		brickTool.Equipped:Connect(function()
-			self:enterBuildMode()
-		end)
-		
-		brickTool.Unequipped:Connect(function()
-			self:exitBuildMode()
-		end)
-		
-		brickTool.AncestryChanged:Connect(function(_: Instance, parent: Instance)
-			if parent ~= game.Players.LocalPlayer.Backpack and parent ~= game.Players.LocalPlayer.Character then
-				console.warn("Brick tool was moved/removed. Exiting build mode...")
-				self:exitBuildMode()
+		local function onChildAdded(brickTool: Tool)
+			if not brickTool:IsA("Tool") then
+				return
 			end
-		end)
+			if brickTool.Name ~= config.buildToolName then
+				return
+			end
+			if brickTool == self.activeBrickTool then
+				return
+			end
+			self.activeBrickTool = brickTool
+			
+			warn("TOOLOLAOSEFLAOSDLFAOSDLFOA")
+			local brickPart: Part? = brickTool:WaitForChild("Handle")
+			brickPart.Transparency = 0.7
+			
+			brickTool.Equipped:Connect(function()
+				self:enterBuildMode()
+			end)
+			
+			brickTool.Unequipped:Connect(function()
+				self:exitBuildMode()
+			end)
+			
+			brickTool.AncestryChanged:Connect(function(_: Instance, parent: Instance)
+				if parent ~= game.Players.LocalPlayer.Backpack and parent ~= game.Players.LocalPlayer.Character then
+					console.warn("Brick tool was moved/removed. Exiting build mode...")
+					self:exitBuildMode()
+				end
+			end)
+		end
+		
+		game.Players.LocalPlayer.Backpack.ChildAdded:Connect(onChildAdded)
+		for _, obj: Instance in game.Players.LocalPlayer.Backpack:GetChildren() do
+			onChildAdded(obj)
+		end
 	end,
 } :: self

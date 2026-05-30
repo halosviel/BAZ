@@ -128,7 +128,7 @@ return {
 			console.error("Bricks folder missing default brick")
 		end
 		
-		--# give player brick on join
+		--# give player brick on character add
 		local function onCharacterAdded(character: Model)
 			local player = game.Players:GetPlayerFromCharacter(character)
 			
