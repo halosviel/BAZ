@@ -228,6 +228,7 @@ return {
 			if brickTool.Name ~= config.buildToolName then
 				return
 			end
+			
 			if brickTool == self.activeBrickTool then
 				return
 			end

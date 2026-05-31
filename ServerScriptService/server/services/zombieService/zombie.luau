@@ -335,8 +335,14 @@ return class {
 						The loop should run as long as the state is active.
 					]]
 					state.maid:GiveTask(task.defer(function()
+						--# maid snapshot to fix nil maid in roaming state. see if statement under task.wait
+						local localMaid: maid.Maid? = state.maid
+						
 						while true do
 							task.wait(SEARCH_FAST_INTERVAL)
+							if not localMaid or state.maid ~= localMaid then
+								return
+							end
 							
 							--# Validate target
 							
@@ -484,7 +490,7 @@ return class {
 				task.wait(SPAWN_RETRY_INTERVAL)
 				--print("repeat")
 				
-				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
+				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithPlayers()
 				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
 					console.warn("No spawnable chunks found", "Skipping...")
 					continue
