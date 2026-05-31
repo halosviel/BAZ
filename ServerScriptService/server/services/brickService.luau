@@ -149,6 +149,7 @@ return {
 				brickPart.Parent = brickTool
 				
 				brickTool.Parent = player.Backpack
+				events.initBrickTool:FireClient(player, brickTool)
 			end)
 		end
 		

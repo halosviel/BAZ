@@ -196,7 +196,7 @@ return {
 						self.lastBuildTimestamp = os.clock()
 					else
 						if message then
-							console.warn(`Unable to place brick: {message}`)
+							console.warn(`Brick place request rejected: {message}`)
 						end
 					end
 					self.requestPending = false
@@ -213,9 +213,15 @@ return {
 	
 	ready = function(self: self)
 		
-		--# wait for the server to clone the tool, then listen for events
-		
-		local function onChildAdded(brickTool: Tool)
+		--[[
+			Look for a brick tool when the player joins, and subscribe to future
+			initBrickTool events fired from the server.
+		]]
+		local function initBrickTool(brickTool: Tool)
+			if not brickTool then
+				console.warn("Unable to initiate brick tool: Nothing passed", "Check: Did the server pass anything?", "Doing nothing...")
+				return
+			end
 			if not brickTool:IsA("Tool") then
 				return
 			end
@@ -223,6 +229,7 @@ return {
 				return
 			end
 			if brickTool == self.activeBrickTool then
+				print("same")
 				return
 			end
 			self.activeBrickTool = brickTool
@@ -241,14 +248,15 @@ return {
 			brickTool.AncestryChanged:Connect(function(_: Instance, parent: Instance)
 				if parent ~= game.Players.LocalPlayer.Backpack and parent ~= game.Players.LocalPlayer.Character then
 					console.warn("Brick tool was moved/removed. Exiting build mode...")
+					self.activeBrickTool = nil
 					self:exitBuildMode()
 				end
 			end)
 		end
 		
-		game.Players.LocalPlayer.Backpack.ChildAdded:Connect(onChildAdded)
+		events.initBrickTool.OnClientEvent:Connect(initBrickTool)
 		for _, obj: Instance in game.Players.LocalPlayer.Backpack:GetChildren() do
-			onChildAdded(obj)
+			initBrickTool(obj)
 		end
 	end,
 } :: self
