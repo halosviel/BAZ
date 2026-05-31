@@ -229,7 +229,6 @@ return {
 				return
 			end
 			if brickTool == self.activeBrickTool then
-				print("same")
 				return
 			end
 			self.activeBrickTool = brickTool
@@ -246,8 +245,8 @@ return {
 			end)
 			
 			brickTool.AncestryChanged:Connect(function(_: Instance, parent: Instance)
-				if parent ~= game.Players.LocalPlayer.Backpack and parent ~= game.Players.LocalPlayer.Character then
-					console.warn("Brick tool was moved/removed. Exiting build mode...")
+				if self.activeBrickTool and parent ~= game.Players.LocalPlayer.Backpack and parent ~= game.Players.LocalPlayer.Character then
+					--console.warn("Brick tool was moved/removed. Exiting build mode...")
 					self.activeBrickTool = nil
 					self:exitBuildMode()
 				end

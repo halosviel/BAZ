@@ -187,7 +187,7 @@ return class {
 						end
 						
 						if not state.maid then
-							print("NO MAIDENS?!?!?!", self)
+							print("NO MAIDENS?!?!?!", state)
 						end
 						state.maid:GiveTask(self.path.Blocked:Connect(function()
 							self.stateMachine:setState("idle")
@@ -484,7 +484,7 @@ return class {
 				task.wait(SPAWN_RETRY_INTERVAL)
 				--print("repeat")
 				
-				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithPlayers()
+				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
 				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
 					console.warn("No spawnable chunks found", "Skipping...")
 					continue
