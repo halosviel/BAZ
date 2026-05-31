@@ -678,8 +678,6 @@ return class {
 		
 		--# Hit detection
 		do
-			local attackSounds: { Sound } = game.SoundService.sfx.zombie.attacks:GetChildren()
-			
 			self.maid:GiveTask(self.root.Touched:Connect(function(hit: Instance)
 				if not self.target then
 					return
@@ -706,8 +704,7 @@ return class {
 				self:_playAnimation("ZombieArmAttack")
 				
 				--# sound
-				local randomAttackSound: Sound = attackSounds[math.random(1, #attackSounds)]
-				soundUtils.wrap(randomAttackSound)
+				soundUtils.wrap("ZombieAttack")
 					:clone()
 					:setParent(self.root)
 					:setRandomPitch(0.2)

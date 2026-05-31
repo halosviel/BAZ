@@ -102,7 +102,6 @@ return {
 				local min: number = self.ZOMBIE_SPAWN_INTERVAL[1]
 				local max: number = self.ZOMBIE_SPAWN_INTERVAL[2]
 				local randomInterval: number = math.random(min * 10, max * 10) / 10
-				
 				--print("spawn", randomInterval)
 				task.wait(randomInterval)
 			end
