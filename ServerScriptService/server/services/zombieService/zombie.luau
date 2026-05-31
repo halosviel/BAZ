@@ -19,6 +19,8 @@ local chunkService = require("../chunkService")
 
 local ragdollService = require("@game/ReplicatedFirst/shared/libs/ragdollService")
 local stateMachine = require("@game/ReplicatedFirst/shared/utils/stateMachine")
+local soundUtils = require("@game/ReplicatedFirst/shared/utils/soundUtils")
+
 local signal = require("@game/ReplicatedFirst/shared/libs/cuteSignal")
 local maid = require("@game/ReplicatedFirst/shared/libs/maid")
 
@@ -51,6 +53,7 @@ type self = {
 	target: Model?,
 	searchCoroutine: thread?,
 	lastDamage: number,
+	lastNoise: number,
 	
 	walkSpeed: number,
 	runSpeed: number,
@@ -94,6 +97,7 @@ local SEARCH_FAST_INTERVAL = 0.2 -- search update interval while chasing target
 local DESTROY_DELAY = 3 -- how long the zombie will stay after dying before being deleted
 local DAMAGE = { min = 5, max = 20 } -- randomised per hit
 local DAMAGE_INTERVAL = 1
+local NOISE_INTERVAL = { min = 5, max = 15 } -- how often the zombie will make noises
 
 -->
 
@@ -115,6 +119,7 @@ return class {
 		self.target = nil
 		self.searchCoroutine = nil
 		self.lastDamage = os.clock()
+		self.lastNoise = os.clock()
 		
 		--# behaviour
 		self.walkSpeed = math.random(WALK_SPEED.min, WALK_SPEED.max)
@@ -673,11 +678,12 @@ return class {
 		
 		--# Hit detection
 		do
+			local attackSounds: { Sound } = game.SoundService.sfx.zombie.attacks:GetChildren()
+			
 			self.maid:GiveTask(self.root.Touched:Connect(function(hit: Instance)
 				if not self.target then
 					return
 				end
-				
 				if not hit:IsDescendantOf(self.target) then
 					return
 				end
@@ -692,10 +698,40 @@ return class {
 				end
 				self.lastDamage = os.clock()
 				
+				--# deal damage
 				local damage: number = math.random(DAMAGE.min, DAMAGE.max)
 				humanoid.Health -= damage
 				
+				--# anim
 				self:_playAnimation("ZombieArmAttack")
+				
+				--# sound
+				local randomAttackSound: Sound = attackSounds[math.random(1, #attackSounds)]
+				soundUtils.wrap(randomAttackSound)
+					:clone()
+					:setParent(self.root)
+					:setRandomPitch(0.2)
+					:autoDestroy()
+					:play()
+			end))
+		end
+		
+		--# sounds
+		do
+			local noises: { Sound } = game.SoundService.sfx.zombie.noises
+			self.maid:GiveTask(task.defer(function()
+				while true do
+					local randomInterval: number = math.random(NOISE_INTERVAL.min, NOISE_INTERVAL.max)
+					task.wait(randomInterval)
+					
+					local randomNoise: Sound = noises[math.random(1, #noises)]
+					soundUtils.wrap(randomNoise)
+						:clone()
+						:setParent(self.root)
+						:setRandomPitch(0.2)
+						:autoDestroy()
+						:play()
+				end
 			end))
 		end
 		
