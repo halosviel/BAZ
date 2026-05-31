@@ -48,8 +48,8 @@ local console = require("@game/ReplicatedFirst/pip/console")
 local params = require("@game/ReplicatedFirst/pip/params")
 local processTimer = require("@game/ReplicatedFirst/pip/processTimer")
 
-local dataTemplate = require("@game/ReplicatedFirst/shared/dataTemplate")
-local events = require("@game/ReplicatedFirst/shared/events")
+local dataTemplate = require("@game/ReplicatedFirst/shared/modules/dataTemplate")
+local events = require("@game/ReplicatedFirst/shared/modules/events")
 
 local profileStore = require("@game/ReplicatedFirst/shared/libs/profileStore")
 local promise = require("@game/ReplicatedFirst/shared/libs/promise")

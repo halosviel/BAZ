@@ -7,7 +7,7 @@
 	Contains all of the game's packets.
 ]=]
 
-local packet = require("./libs/packet")
+local packet = require("../libs/packet")
 
 return {
 	--# data

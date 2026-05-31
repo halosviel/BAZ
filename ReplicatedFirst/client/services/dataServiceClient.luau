@@ -21,8 +21,8 @@ local console = require("@game/ReplicatedFirst/pip/console")
 local params = require("@game/ReplicatedFirst/pip/params")
 local processTimer = require("@game/ReplicatedFirst/pip/processTimer")
 
-local events = require("@game/ReplicatedFirst/shared/events")
-local dataTemplate = require("@game/ReplicatedFirst/shared/dataTemplate")
+local events = require("@game/ReplicatedFirst/shared/modules/events")
+local dataTemplate = require("@game/ReplicatedFirst/shared/modules/dataTemplate")
 
 local promise = require("@game/ReplicatedFirst/shared/libs/promise")
 local signal = require("@game/ReplicatedFirst/shared/libs/cuteSignal")

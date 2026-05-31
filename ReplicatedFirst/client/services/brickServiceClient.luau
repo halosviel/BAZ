@@ -20,8 +20,8 @@ local console = require("@game/ReplicatedFirst/pip/console")
 
 local dataServiceClient = require("@game/ReplicatedFirst/client/services/dataServiceClient")
 
-local config = require("@game/ReplicatedFirst/shared/config")
-local events = require("@game/ReplicatedFirst/shared/events")
+local config = require("@game/ReplicatedFirst/shared/modules/config")
+local events = require("@game/ReplicatedFirst/shared/modules/events")
 
 local tweenUtils = require("@game/ReplicatedFirst/shared/utils/tweenUtils")
 local soundUtils = require("@game/ReplicatedFirst/shared/utils/soundUtils")

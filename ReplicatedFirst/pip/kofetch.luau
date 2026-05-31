@@ -29,7 +29,7 @@ local message = ([[session started
 ]])
 
 -- [REQUIRES]
-local gameVersion = require("@game/ReplicatedFirst/shared/version")
+local gameVersion = require("@game/ReplicatedFirst/shared/modules/version")
 
 -->
 

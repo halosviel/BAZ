@@ -20,8 +20,8 @@ local console = require("@game/ReplicatedFirst/pip/console")
 
 local dataService = require("./dataService")
 
-local config = require("@game/ReplicatedFirst/shared/config")
-local events = require("@game/ReplicatedFirst/shared/events")
+local config = require("@game/ReplicatedFirst/shared/modules/config")
+local events = require("@game/ReplicatedFirst/shared/modules/events")
 
 -- [TYPES]
 type self = {
