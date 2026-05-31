@@ -718,7 +718,8 @@ return class {
 		
 		--# sounds
 		do
-			local noises: { Sound } = game.SoundService.sfx.zombie.noises
+			local noises: { Sound } = game.SoundService.sfx.zombie.noises:GetChildren()
+			
 			self.maid:GiveTask(task.defer(function()
 				while true do
 					local randomInterval: number = math.random(NOISE_INTERVAL.min, NOISE_INTERVAL.max)
