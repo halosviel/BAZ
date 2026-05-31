@@ -46,9 +46,9 @@ return {
 	
 	placeBrick = function(self: self, player: Player, brickCFrame: CFrame)
 		dataService:read(player, "brickSkin"):andThen(function(brickSkinName: string)
-			local brickSkin: Part? = game.ReplicatedFirst.shared.bricks:FindFirstChild(brickSkinName)
+			local brickSkin: Part? = game.ReplicatedFirst.assets.bricks:FindFirstChild(brickSkinName)
 			if not brickSkin then
-				brickSkin = game.ReplicatedFirst.shared.bricks:FindFirstChild("Default")
+				brickSkin = game.ReplicatedFirst.assets.bricks:FindFirstChild("Default")
 			end
 			
 			local brick = brickSkin:Clone()
@@ -124,7 +124,7 @@ return {
 		end
 		
 		--# validate default brick
-		if game.ReplicatedFirst.shared.bricks:FindFirstChild("Default") == nil then
+		if game.ReplicatedFirst.assets.bricks:FindFirstChild("Default") == nil then
 			console.error("Bricks folder missing default brick")
 		end
 		
@@ -133,7 +133,7 @@ return {
 			local player = game.Players:GetPlayerFromCharacter(character)
 			
 			dataService:read(player, "brickSkin"):andThen(function(brickSkinName: string)
-				local brickPart: Part? = game.ReplicatedFirst.shared.bricks:FindFirstChild(brickSkinName)
+				local brickPart: Part? = game.ReplicatedFirst.assets.bricks:FindFirstChild(brickSkinName)
 				if not brickPart then
 					console.warn(`Brick "{brickSkinName}" not found. Unable to give to @{tostring(player)}`)
 					return

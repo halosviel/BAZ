@@ -65,9 +65,9 @@ return {
 		dataServiceClient:read("brickSkin"):andThen(function(brickSkinName: string)
 			--# create brick preview
 			
-			local brickSkin: Part? = game.ReplicatedFirst.shared.bricks:FindFirstChild(brickSkinName)
+			local brickSkin: Part? = game.ReplicatedFirst.assets.bricks:FindFirstChild(brickSkinName)
 			if not brickSkin then
-				brickSkin = game.ReplicatedFirst.shared.bricks:FindFirstChild("Default")
+				brickSkin = game.ReplicatedFirst.assets.bricks:FindFirstChild("Default")
 			end
 			
 			self.brickPreview = brickSkin:Clone()
@@ -108,25 +108,25 @@ return {
 				
 				local params = RaycastParams.new()
 				params.ExcludeInstances = { character, camera, self.brickPreview }
-
+				
 				local mouseDirection: Vector3 = (self.mouse.Hit.Position - camera.CFrame.Position).Unit
 				local mouseHit: Vector3 = self.mouse.Hit.Position
-
+				
 				local result = workspace:Raycast(
 					camera.CFrame.Position,
 					mouseDirection * config.buildPreviewRadius,
 					params
 				)
-
+				
 				if not result or not result.Instance then
 					local groundOrigin = Vector3.new(mouseHit.X, root.Position.Y + 50, mouseHit.Z)
 					result = workspace:Raycast(groundOrigin, Vector3.new(0, -100, 0), params)
 				end
-
+				
 				if not result or result and not result.Instance then
 					return
 				end
-
+				
 				--# calculate offset accounting for rotation
 				local brickRotationCFrame = CFrame.Angles(0, math.rad(self.brickRotation), 0)
 				local localNormal = brickRotationCFrame:VectorToObjectSpace(result.Normal)
@@ -134,14 +134,14 @@ return {
 				local offset = math.abs(localNormal.X) * halfSize.X
 					+ math.abs(localNormal.Y) * halfSize.Y
 					+ math.abs(localNormal.Z) * halfSize.Z
-
+				
 				local resultPos: Vector3
 				if math.abs(result.Normal.Y) > 0.5 then
 					resultPos = result.Position + Vector3.new(0, result.Normal.Y * offset, 0)
 				else
 					resultPos = result.Position + result.Normal * offset
 				end
-
+				
 				--# color
 				--# ( based on distance )
 				if self.brickPreview then
@@ -151,7 +151,7 @@ return {
 						self.brickPreview.Color = brickSkin.Color
 					end
 				end
-
+				
 				--# place preview
 				--# ( rounded )
 				if self.brickPreview then
@@ -166,13 +166,13 @@ return {
 			
 			--# keybinds
 			
-			self.maid:GiveTask(game.ReplicatedFirst.shared.inputs.BrickControls.RotateBrick.Pressed:Connect(function()
+			self.maid:GiveTask(game.ReplicatedFirst.assets.inputs.BrickControls.RotateBrick.Pressed:Connect(function()
 				if self.brickPreview then
 					self.brickRotation = (self.brickRotation + 90) % 360
 				end
 			end))
 			
-			self.maid:GiveTask(game.ReplicatedFirst.shared.inputs.BrickControls.PlaceBrick.Pressed:Connect(function()
+			self.maid:GiveTask(game.ReplicatedFirst.assets.inputs.BrickControls.PlaceBrick.Pressed:Connect(function()
 				if os.clock() - self.lastBuildTimestamp < config.buildCooldown then
 					return
 				end
@@ -227,7 +227,6 @@ return {
 			end
 			self.activeBrickTool = brickTool
 			
-			warn("TOOLOLAOSEFLAOSDLFAOSDLFOA")
 			local brickPart: Part? = brickTool:WaitForChild("Handle")
 			brickPart.Transparency = 0.7
 			

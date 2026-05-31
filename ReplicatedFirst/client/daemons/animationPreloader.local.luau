@@ -14,7 +14,7 @@ local try = require("@game/ReplicatedFirst/pip/try")
 -->
 
 local animations: { Animation } = {}
-for _, animation: Animation in game.ReplicatedFirst.shared.animations:GetChildren() do
+for _, animation: Animation in game.ReplicatedFirst.assets.animations:GetChildren() do
 	if not animation:IsA("Animation") then
 		return
 	end

@@ -104,7 +104,7 @@ return class {
 		self.spawned = false
 		
 		--# model
-		self.model = game.ReplicatedFirst.shared.assets.ZombieRig:Clone()
+		self.model = game.ReplicatedFirst.assets.models.ZombieRig:Clone()
 		self.model.Name = `Zombie_{id}`
 		self.head = self.model:WaitForChild("Head")
 		self.root = self.model:WaitForChild("HumanoidRootPart")
@@ -582,7 +582,7 @@ return class {
 					--# adjust walk anim speed
 					currentSpeed = speed
 					local animationTrack = self.humanoid:FindFirstChild("Animator"):GetTrackByAnimationId(
-						game.ReplicatedFirst.shared.animations.ZombieWalk.AnimationId
+						game.ReplicatedFirst.assets.animations.ZombieWalk.AnimationId
 					)
 					
 					if animationTrack then
@@ -718,7 +718,7 @@ return class {
 		Plays an animation.
 	]]
 	_playAnimation = function(self: self, animationName: string)
-		local animation: Animation = game.ReplicatedFirst.shared.animations:FindFirstChild(animationName)
+		local animation: Animation = game.ReplicatedFirst.assets.animations:FindFirstChild(animationName)
 		if not animation then
 			console.deverr(`Animation "{animationName} does not exist`)
 		end
@@ -749,7 +749,7 @@ return class {
 		Stops an animation with no fail states/handling.
 	]]
 	_stopAnimation = function(self: self, animationName: string)
-		local animation: Animation = game.ReplicatedFirst.shared.animations:FindFirstChild(animationName)
+		local animation: Animation = game.ReplicatedFirst.assets.animations:FindFirstChild(animationName)
 		if not animation then
 			console.deverr(`Animation "{animationName} does not exist`)
 		end
