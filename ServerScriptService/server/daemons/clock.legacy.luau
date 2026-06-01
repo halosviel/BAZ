@@ -25,10 +25,8 @@ while true do
 	
 	local clockTime: number = math.floor(game.Lighting.ClockTime)
 	if clockTime == DAY_TIME and zombieService:isRunning() then
-		print("stop")
 		zombieService:stopSpawning()
 	elseif clockTime == NIGHT_TIME and not zombieService:isRunning() then
-		print("start")
 		zombieService:startSpawning()
 	end
 	

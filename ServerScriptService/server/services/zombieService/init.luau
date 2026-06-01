@@ -70,6 +70,7 @@ return {
 			return
 		end
 		
+		--print("started spawning")
 		self.spawnThread = task.defer(function()
 			while #self.zombies < self.MAX_ZOMBIE_COUNT do
 				--# spawn zombie
@@ -118,7 +119,8 @@ return {
 			console.warn("Request to stop zombie spawning dropped: Thread does not exist")
 			return
 		end
-
+		
+		--print("spawning stopped")
 		task.cancel(self.spawnThread)
 		self.spawnThread = nil
 	end,
