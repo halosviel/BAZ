@@ -97,6 +97,7 @@ local SEARCH_FAST_INTERVAL = 0.2 -- search update interval while chasing target
 local DESTROY_DELAY = 3 -- how long the zombie will stay after dying before being deleted
 local DAMAGE = { min = 5, max = 20 } -- randomised per hit
 local DAMAGE_INTERVAL = 1
+local DAMAGE_HIGHLIGHT_LIFETIME = 0.2 -- how long the red highlight lasts for when the zombies takes damage
 local NOISE_INTERVAL = { min = 5, max = 15 } -- how often the zombie will make noises
 
 -->
@@ -713,7 +714,43 @@ return class {
 			end))
 		end
 		
-		--# sounds
+		--# damage detection
+		do
+			local damageSounds: { Sound } = game.SoundService.sfx.zombie.damage:GetChildren()
+			local lastHealth: number = self.humanoid.Health
+			
+			self.maid:GiveTask(self.humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+				--# dead
+				if self.humanoid.Health == 0 then
+					self.stateMachine:setState("dead")
+					--# ^ ragdoll + end the zombie lifecycle
+					return
+				end
+				
+				--# took damage
+				if self.humanoid.Health < lastHealth then
+					--# sound
+					local randomSound: Sound = damageSounds[math.random(1, #damageSounds)]
+					soundUtils.wrap("ZombieAttack")
+						:clone()
+						:setParent(self.root)
+						:setRandomPitch(0.2)
+						:autoDestroy()
+						:play()
+					
+					--# highlight
+					if self.model and self.root and self.humanoid then --# void detection
+						local highlight = Instance.new("Highlight")
+						highlight.Parent = self.model
+						game.Debris:AddItem(highlight, DAMAGE_HIGHLIGHT_LIFETIME)
+					end
+				end
+				
+				lastHealth = self.humanoid.Health
+			end))
+		end
+		
+		--# interval sounds
 		do
 			local noises: { Sound } = game.SoundService.sfx.zombie.noises:GetChildren()
 			
@@ -722,8 +759,8 @@ return class {
 					local randomInterval: number = math.random(NOISE_INTERVAL.min, NOISE_INTERVAL.max)
 					task.wait(randomInterval)
 					
-					local randomNoise: Sound = noises[math.random(1, #noises)]
-					soundUtils.wrap(randomNoise)
+					local randomSound: Sound = noises[math.random(1, #noises)]
+					soundUtils.wrap(randomSound)
 						:clone()
 						:setParent(self.root)
 						:setRandomPitch(0.2)
@@ -736,13 +773,6 @@ return class {
 		--# Ragdoll setup
 		do
 			ragdollService.SetupRagdoll(self.model)
-		end
-		
-		--# Death events
-		do
-			self.humanoid.Died:Connect(function()
-				self.stateMachine:setState("dead")
-			end)
 		end
 	end,
 	
