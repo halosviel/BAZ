@@ -31,6 +31,7 @@ type self = {
 	
 	-- [FUNCTIONS]
 	constructor: ( self: self ) -> nil,
+	isRunning: ( self: self ) -> boolean,
 	startSpawning: ( self: self ) -> nil,
 	stopSpawning: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
@@ -45,10 +46,14 @@ local globalId = 0
 return {
 	constructor = function(self: self)
 		self.MAX_ZOMBIE_COUNT = 100
-		self.ZOMBIE_SPAWN_INTERVAL = { 0, 1 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
+		self.ZOMBIE_SPAWN_INTERVAL = { 0, 4 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
 		
 		self.zombies = {}
 		self.spawnThread = nil
+	end,
+	
+	isRunning = function(self: self) : boolean
+		return self.spawnThread ~= nil
 	end,
 	
 	--[[
@@ -60,8 +65,8 @@ return {
 		its place as long as this thread is still running.
 	]]
 	startSpawning = function(self: self)
-		if self.spawnThread then
-			console.warn("Requets to start zombie spawning dropped: Thread already exists")
+		if self:isRunning() then
+			console.warn("Request to start zombie spawning dropped: Thread already exists")
 			return
 		end
 		
@@ -109,7 +114,7 @@ return {
 	end,
 	
 	stopSpawning = function(self: self)
-		if not self.spawnThread then
+		if not self:isRunning() then
 			console.warn("Request to stop zombie spawning dropped: Thread does not exist")
 			return
 		end
@@ -119,6 +124,5 @@ return {
 	end,
 	
 	ready = function(self: self)
-		self:startSpawning()
 	end,
 } :: self
