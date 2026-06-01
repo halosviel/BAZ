@@ -9,11 +9,9 @@
 
 return {
 	--# build system
-	gridSize = 1, -- snap
-	buildToolName = "Brick",
-	buildRadius = 15, -- how far from the HRP a player can build from
-	buildCooldown = 0.5,
-	buildPreviewRadius = 45, -- how far a build preview will travel (lowk dk if keep or not, might be redundant)
-	buildPreviewTransparency = 0.5,
-	buildInvalidColor = Color3.fromRGB(255, 61, 64)
+	GRID_SIZE = 1, --# snap
+	BUILD_TOOL_NAME = "Brick",
+	BUILD_RADIUS = 15, --# how far from the HRP a player can build from
+	BUILD_PLACE_COOLDOWN = 0.5,
+	BUILD_THROW_COOLDOWN = 1,
 }

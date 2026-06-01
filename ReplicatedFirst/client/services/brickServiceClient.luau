@@ -30,6 +30,9 @@ local maid = require("@game/ReplicatedFirst/shared/libs/maid")
 -- [TYPES]
 type self = {
 	-- [CONFIG]
+	BUILD_PREVIEW_RADIUS: number,
+	BUILD_PREVIEW_TRANSPARENCY: number,
+	INVALID_BUILD_COLOR: Color3,
 
 	-- [ENTRIES]
 	mouse: Mouse,
@@ -37,8 +40,10 @@ type self = {
 	brickPreview: Part?,
 	brickRotation: number,
 	lastBuildTimestamp: number,
+	lastThrowTimestamp: number,
 	requestPending: boolean,
-	maid: maid.Maid,
+	buildModeDisabled: boolean,
+	buildModeMaid: maid.Maid,
 	
 	-- [FUNCTIONS]
 	constructor: ( self: self ) -> nil,
@@ -52,16 +57,26 @@ export type BrickServiceClient = self
 
 return {
 	constructor = function(self: self)
+		self.BUILD_PREVIEW_RADIUS = 45
+		self.BUILD_PREVIEW_TRANSPARENCY = 0.2
+		self.INVALID_BUILD_COLOR = Color3.fromRGB(255, 61, 64)
+		
 		self.mouse = game.Players.LocalPlayer:GetMouse()
 		self.activeBrickTool = nil
 		self.brickPreview = nil
 		self.brickRotation = 0
 		self.lastBuildTimestamp = os.clock()
-		self.requestPending = false -- flag to disable inputs while waiting for a place event response
-		self.maid = maid.new()
+		self.lastThrowTimestamp = os.clock()
+		self.requestPending = false --# flag to disable inputs while waiting for a place event response
+		self.buildModeDisabled = false --# temporarily set to true while throwing; retain functionality but ignore all place requests
+		self.buildModeMaid = maid.new()
 	end,
 	
 	enterBuildMode = function(self: self)
+		if self.buildModeDisabled then
+			return
+		end
+		
 		dataServiceClient:read("brickSkin"):andThen(function(brickSkinName: string)
 			--# create brick preview
 			
@@ -71,13 +86,13 @@ return {
 			end
 			
 			self.brickPreview = brickSkin:Clone()
-			self.brickPreview.Transparency = config.buildPreviewTransparency
+			self.brickPreview.Transparency = self.BUILD_PREVIEW_TRANSPARENCY
 			self.brickPreview.CanCollide = false
 			self.brickPreview.Parent = workspace.dynamic
-			self.maid:GiveTask(self.brickPreview)
+			self.buildModeMaid:GiveTask(self.brickPreview)
 			--# position brick preview
 			
-			self.maid:GiveTask(game.RunService.RenderStepped:Connect(function()
+			self.buildModeMaid:GiveTask(game.RunService.RenderStepped:Connect(function()
 				
 				--# validation
 				
@@ -114,7 +129,7 @@ return {
 				
 				local result = workspace:Raycast(
 					camera.CFrame.Position,
-					mouseDirection * config.buildPreviewRadius,
+					mouseDirection * self.BUILD_PREVIEW_RADIUS,
 					params
 				)
 				
@@ -145,8 +160,8 @@ return {
 				--# color
 				--# ( based on distance )
 				if self.brickPreview then
-					if (root.Position - resultPos).Magnitude >= config.buildRadius then
-						self.brickPreview.Color = config.buildInvalidColor
+					if (root.Position - resultPos).Magnitude >= config.BUILD_RADIUS then
+						self.brickPreview.Color = self.INVALID_BUILD_COLOR
 					else
 						self.brickPreview.Color = brickSkin.Color
 					end
@@ -156,9 +171,9 @@ return {
 				--# ( rounded )
 				if self.brickPreview then
 					local snappedPos = Vector3.new(
-						math.round(resultPos.X / config.gridSize) * config.gridSize,
-						math.round(resultPos.Y / config.gridSize) * config.gridSize,
-						math.round(resultPos.Z / config.gridSize) * config.gridSize
+						math.round(resultPos.X / config.GRID_SIZE) * config.GRID_SIZE,
+						math.round(resultPos.Y / config.GRID_SIZE) * config.GRID_SIZE,
+						math.round(resultPos.Z / config.GRID_SIZE) * config.GRID_SIZE
 					)
 					self.brickPreview.CFrame = CFrame.new(snappedPos) * brickRotationCFrame
 				end
@@ -166,14 +181,8 @@ return {
 			
 			--# keybinds
 			
-			self.maid:GiveTask(game.ReplicatedFirst.assets.inputs.BrickControls.RotateBrick.Pressed:Connect(function()
-				if self.brickPreview then
-					self.brickRotation = (self.brickRotation + 90) % 360
-				end
-			end))
-			
-			self.maid:GiveTask(game.ReplicatedFirst.assets.inputs.BrickControls.PlaceBrick.Pressed:Connect(function()
-				if os.clock() - self.lastBuildTimestamp < config.buildCooldown then
+			self.buildModeMaid:GiveTask(game.ReplicatedFirst.assets.inputs.BrickControls.PlaceBrick.Pressed:Connect(function()
+				if os.clock() - self.lastBuildTimestamp < config.BUILD_PLACE_COOLDOWN then
 					return
 				end
 				
@@ -184,8 +193,8 @@ return {
 				
 				if self.brickPreview then
 					--# no faulty types. any modification is 100% tampering
-					local placeSuccess: boolean, message: string? = events.placeBrick:Fire(self.brickPreview.CFrame)
-					if placeSuccess then
+					local validated: boolean, message: string? = events.placeBrick:Fire(self.brickPreview.CFrame)
+					if validated then
 						soundUtils.wrap("PlaceBrick")
 							:clone()
 							:setParent(game.SoundService)
@@ -202,12 +211,38 @@ return {
 					self.requestPending = false
 				end
 			end))
+			
+			self.buildModeMaid:GiveTask(game.ReplicatedFirst.assets.inputs.BrickControls.RotateBrick.Pressed:Connect(function()
+				--# just update the var, and the placing system uses it
+				if self.brickPreview then
+					self.brickRotation = (self.brickRotation + 90) % 360
+				end
+			end))
+			
+			self.buildModeMaid:GiveTask(game.ReplicatedFirst.assets.inputs.BrickControls.ThrowBrick.Pressed:Connect(function()
+				if os.clock() - self.lastThrowTimestamp < config.BUILD_THROW_COOLDOWN then
+					return
+				end
+				self.lastThrowTimestamp = os.clock()
+				
+				local validated: boolean, message: string? = events.throwBrick:Fire()
+				if validated then
+					self.buildModeDisabled = true
+					task.delay(config.BUILD_THROW_COOLDOWN, function()
+						self.buildModeDisabled = false
+					end)
+				else
+					if message then
+						console.warn(`Brick throw request rejected: {message}`)
+					end
+				end
+			end))
 		end)
 	end,
 	
 	exitBuildMode = function(self: self)
-		if self.maid then
-			self.maid:DoCleaning()
+		if self.buildModeMaid then
+			self.buildModeMaid:DoCleaning()
 		end
 	end,
 	
@@ -225,7 +260,7 @@ return {
 			if not brickTool:IsA("Tool") then
 				return
 			end
-			if brickTool.Name ~= config.buildToolName then
+			if brickTool.Name ~= config.BUILD_TOOL_NAME then
 				return
 			end
 			

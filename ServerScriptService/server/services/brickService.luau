@@ -33,6 +33,7 @@ type self = {
 	-- [FUNCTIONS]
 	constructor: ( self: self ) -> nil,
 	placeBrick: ( self: self, player: Player, brickCFrame: CFrame ) -> nil,
+	throwBrick: ( self: self, player: Player ) -> nil,
 	ready: ( self: self ) -> nil
 }
 export type BrickService = self
@@ -61,9 +62,9 @@ return {
 			local rotationX: number, rotationY: number, rotationZ: number = brickCFrame:ToEulerAnglesXYZ()
 			
 			local snappedPos = Vector3.new(
-				math.round(position.X / config.gridSize) * config.gridSize,
-				math.round(position.Y / config.gridSize) * config.gridSize,
-				math.round(position.Z / config.gridSize) * config.gridSize
+				math.round(position.X / config.GRID_SIZE) * config.GRID_SIZE,
+				math.round(position.Y / config.GRID_SIZE) * config.GRID_SIZE,
+				math.round(position.Z / config.GRID_SIZE) * config.GRID_SIZE
 			)
 			
 			local snappedRx = math.round(math.deg(rotationX) / 90) * 90
@@ -84,9 +85,15 @@ return {
 		end)
 	end,
 	
+	throwBrick = function(self: self, player: Player)
+		
+	end,
+	
 	ready = function(self: self)
 		
-		--# handle place requests
+		--# [EVENTS]
+		
+		--# place brick requests
 		events.placeBrick.OnServerInvoke = function(player: Player, brickCFrame: CFrame) : ( boolean, string? )
 			--# 100% tampering, no possible dev errs on client
 			if typeof(brickCFrame) ~= "CFrame" then
@@ -115,13 +122,42 @@ return {
 				return false, "Dead"
 			end
 			
-			if (rootPart.Position - brickCFrame.Position).Magnitude > config.buildRadius + self.BUILD_RADIUS_FORGIVEABLE then
+			if (rootPart.Position - brickCFrame.Position).Magnitude > config.BUILD_RADIUS + self.BUILD_RADIUS_FORGIVEABLE then
 				return false, "Out of range"
 			end
 			
 			self:placeBrick(player, brickCFrame)
 			return true
 		end
+		
+		--# throw brick requests
+		events.throwBrick.OnServerInvoke = function(player: Player) : ( boolean, string )
+			--# checks
+			local character: Model? = player.Character
+			if not character then
+				return false, "No Character found"
+			end
+			
+			local rootPart: Part? = character:FindFirstChild("HumanoidRootPart")
+			if not rootPart then
+				return false, "No HumanoidRootPart found"
+			end
+			
+			local humanoid: Humanoid? = character:FindFirstChild("Humanoid")
+			if not humanoid then
+				return false, "No Humanoid found"
+			end
+			
+			if humanoid.Health == 0 then
+				return false, "Dead"
+			end
+			
+			print("throw")
+			self:throwBrick(player)
+			return true
+		end
+		
+		-- [GIVE BRICK]
 		
 		--# validate default brick
 		if game.ReplicatedFirst.assets.bricks:FindFirstChild("Default") == nil then
@@ -140,7 +176,7 @@ return {
 				end
 				
 				local brickTool = Instance.new("Tool")
-				brickTool.Name = config.buildToolName
+				brickTool.Name = config.BUILD_TOOL_NAME
 				brickTool.CanBeDropped = false
 				
 				brickPart = brickPart:Clone()
