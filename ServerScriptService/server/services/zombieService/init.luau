@@ -126,6 +126,5 @@ return {
 	end,
 	
 	ready = function(self: self)
-		self:startSpawning()
 	end,
 } :: self
