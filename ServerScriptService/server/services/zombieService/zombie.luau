@@ -125,7 +125,7 @@ return class {
 		--# behaviour
 		self.walkSpeed = math.random(WALK_SPEED.min, WALK_SPEED.max)
 		self.runSpeed = math.random(RUN_SPEED.min, RUN_SPEED.max)
-		self.path = game.PathfindingService:CreatePath({
+		self.path = game:GetService("PathfindingService"):CreatePath({
 			AgentRadius = 2,
 			AgentHeight = 3,
 			AgentCanJump = false,
