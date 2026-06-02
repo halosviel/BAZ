@@ -97,7 +97,7 @@ return {
 		events.placeBrick.OnServerInvoke = function(player: Player, brickCFrame: CFrame) : ( boolean, string? )
 			--# 100% tampering, no possible dev errs on client
 			if typeof(brickCFrame) ~= "CFrame" then
-				console.warn(`Given brickCFrame was not a CFrame ({typeof(brickCFrame)})`, "Remote tampering")
+				console.warn(`Given brickCFrame was not a CFrame (got {typeof(brickCFrame)})`, "Remote tampering")
 				player:Kick("Remote tampering")
 				return false, "Illegal placement"
 			end
@@ -131,7 +131,14 @@ return {
 		end
 		
 		--# throw brick requests
-		events.throwBrick.OnServerInvoke = function(player: Player) : ( boolean, string )
+		events.throwBrick.OnServerInvoke = function(player: Player, mousePosition: Vector3) : ( boolean, string )
+			--# 100% tampering, no possible dev errs on client
+			if typeof(mousePosition) ~= "Vector3" then
+				console.warn(`Given mousePosition was not a Vector3 (got {typeof(mousePosition)})`, "Remote tampering")
+				player:Kick("Remote tampering")
+				return false, "Illegal placement"
+			end
+			
 			--# checks
 			local character: Model? = player.Character
 			if not character then
@@ -153,7 +160,7 @@ return {
 			end
 			
 			print("throw")
-			self:throwBrick(player)
+			self:throwBrick(player, mousePosition)
 			return true
 		end
 		

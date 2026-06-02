@@ -229,7 +229,15 @@ return {
 				end
 				self.lastThrowTimestamp = os.clock()
 				
-				local validated: boolean, message: string? = events.throwBrick:Fire()
+				--# validate hit
+				if not self.mouse then
+					return
+				end
+				if not self.mouse.Hit then
+					return
+				end
+				
+				local validated: boolean, message: string? = events.throwBrick:Fire(self.mouse.Hit.Position)
 				if validated then
 					self.buildModeDisabled = true
 					task.delay(config.BUILD_THROW_COOLDOWN, function()
