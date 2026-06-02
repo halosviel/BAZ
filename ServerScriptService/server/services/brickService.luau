@@ -22,18 +22,21 @@ local dataService = require("./dataService")
 
 local config = require("@game/ReplicatedFirst/shared/modules/config")
 local events = require("@game/ReplicatedFirst/shared/modules/events")
+local applyKnockback = require("@game/ReplicatedFirst/shared/utils/applyKnockback")
 
 -- [TYPES]
 type self = {
 	-- [CONFIG]
 	BUILD_RADIUS_FORGIVEABLE: number,
+	THROW_FORCE: number,
+	THROW_LIFT: number,
 	
 	-- [ENTRIES]
 	
 	-- [FUNCTIONS]
 	constructor: ( self: self ) -> nil,
 	placeBrick: ( self: self, player: Player, brickCFrame: CFrame ) -> nil,
-	throwBrick: ( self: self, player: Player ) -> nil,
+	throwBrick: ( self: self, player: Player, mousePosition: Vector3 ) -> nil,
 	ready: ( self: self ) -> nil
 }
 export type BrickService = self
@@ -43,6 +46,8 @@ export type BrickService = self
 return {
 	constructor = function(self: self)
 		self.BUILD_RADIUS_FORGIVEABLE = 4 -- how far outside config.buildRadius the player can build
+		self.THROW_FORCE = 40
+		self.THROW_LIFT = 10
 	end,
 	
 	placeBrick = function(self: self, player: Player, brickCFrame: CFrame)
@@ -51,8 +56,8 @@ return {
 			if not brickSkin then
 				brickSkin = game.ReplicatedFirst.assets.bricks:FindFirstChild("Default")
 			end
-			
-			local brick = brickSkin:Clone()
+
+			local brick: Part = brickSkin:Clone()
 			brick:SetAttribute("Owner", player.UserId)
 			brick:SetAttribute("Health", 100) --# might scale with more bricks in future, hmm
 			
@@ -85,8 +90,46 @@ return {
 		end)
 	end,
 	
-	throwBrick = function(self: self, player: Player)
-		
+	throwBrick = function(self: self, player: Player, mousePosition: Vector3)
+		dataService:read(player, "brickSkin"):andThen(function(brickSkinName: string)
+			local brickSkin: Part? = game.ReplicatedFirst.assets.bricks:FindFirstChild(brickSkinName)
+			if not brickSkin then
+				brickSkin = game.ReplicatedFirst.assets.bricks:FindFirstChild("Default")
+			end
+			
+			--# checks
+			local character: Model? = player.Character
+			if not character then
+				return false, "No Character found"
+			end
+			
+			local rootPart: Part? = character:FindFirstChild("HumanoidRootPart")
+			if not rootPart then
+				return false, "No HumanoidRootPart found"
+			end
+			
+			local rightArm: Part? = character:FindFirstChild("Right Arm")
+			if not rightArm then
+				return false, "No Right Arm found"
+			end
+			
+			local humanoid: Humanoid? = character:FindFirstChild("Humanoid")
+			if not humanoid then
+				return false, "No Humanoid found"
+			end
+			
+			if humanoid.Health == 0 then
+				return false, "Dead"
+			end
+			
+			local brick: Part = brickSkin:Clone()
+			brick.Anchored = false
+			brick.Parent = workspace.dynamic.bricks
+			brick:PivotTo(rightArm.CFrame)
+			
+			local direction: Vector3 = (mousePosition - rootPart.Position).Unit
+			applyKnockback(brick, direction, self.THROW_FORCE, self.THROW_LIFT)
+		end)
 	end,
 	
 	ready = function(self: self)
