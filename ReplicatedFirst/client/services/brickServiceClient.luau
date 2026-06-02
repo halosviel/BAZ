@@ -237,7 +237,20 @@ return {
 					return
 				end
 				
-				local validated: boolean, message: string? = events.throwBrick:Fire(self.mouse.Hit.Position)
+				--# get right arm
+				local character: Model? = game.Players.LocalPlayer.Character
+				if not character then
+					return
+				end
+				
+				local rightArm: Part? = character:FindFirstChild("Right Arm")
+				if not rightArm then
+					--# keep warn in case of R15 switch/other avatar errs
+					console.warn("Request to throw brick dropped: No Right Arm found")
+					return
+				end
+				
+				local validated: boolean, message: string? = events.throwBrick:Fire(self.mouse.Hit.Position, rightArm.CFrame)
 				if validated then
 					self.buildModeDisabled = true
 					task.delay(config.BUILD_THROW_COOLDOWN, function()

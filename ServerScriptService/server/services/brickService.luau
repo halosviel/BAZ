@@ -30,13 +30,14 @@ type self = {
 	BUILD_RADIUS_FORGIVEABLE: number,
 	THROW_FORCE: number,
 	THROW_LIFT: number,
+	THROW_OFFSET: Vector3,
 	
 	-- [ENTRIES]
 	
 	-- [FUNCTIONS]
 	constructor: ( self: self ) -> nil,
 	placeBrick: ( self: self, player: Player, brickCFrame: CFrame ) -> nil,
-	throwBrick: ( self: self, player: Player, mousePosition: Vector3 ) -> nil,
+	throwBrick: ( self: self, player: Player, mousePosition: Vector3, rightArmCFrame: CFrame ) -> nil,
 	ready: ( self: self ) -> nil
 }
 export type BrickService = self
@@ -46,8 +47,9 @@ export type BrickService = self
 return {
 	constructor = function(self: self)
 		self.BUILD_RADIUS_FORGIVEABLE = 4 -- how far outside config.buildRadius the player can build
-		self.THROW_FORCE = 40
+		self.THROW_FORCE = 50
 		self.THROW_LIFT = 10
+		self.THROW_OFFSET = 4 -- offset from the right arm's lookVector
 	end,
 	
 	placeBrick = function(self: self, player: Player, brickCFrame: CFrame)
@@ -90,44 +92,20 @@ return {
 		end)
 	end,
 	
-	throwBrick = function(self: self, player: Player, mousePosition: Vector3)
+	throwBrick = function(self: self, player: Player, mousePosition: Vector3, rightArmCFrame: CFrame)
 		dataService:read(player, "brickSkin"):andThen(function(brickSkinName: string)
 			local brickSkin: Part? = game.ReplicatedFirst.assets.bricks:FindFirstChild(brickSkinName)
 			if not brickSkin then
 				brickSkin = game.ReplicatedFirst.assets.bricks:FindFirstChild("Default")
 			end
 			
-			--# checks
-			local character: Model? = player.Character
-			if not character then
-				return false, "No Character found"
-			end
-			
-			local rootPart: Part? = character:FindFirstChild("HumanoidRootPart")
-			if not rootPart then
-				return false, "No HumanoidRootPart found"
-			end
-			
-			local rightArm: Part? = character:FindFirstChild("Right Arm")
-			if not rightArm then
-				return false, "No Right Arm found"
-			end
-			
-			local humanoid: Humanoid? = character:FindFirstChild("Humanoid")
-			if not humanoid then
-				return false, "No Humanoid found"
-			end
-			
-			if humanoid.Health == 0 then
-				return false, "Dead"
-			end
-			
 			local brick: Part = brickSkin:Clone()
 			brick.Anchored = false
 			brick.Parent = workspace.dynamic.bricks
-			brick:PivotTo(rightArm.CFrame)
+			brick.Position = rightArmCFrame.Position - rightArmCFrame.UpVector * self.THROW_OFFSET
+			--# ^ use upVector since the arm is rotated like that -> lookVector makes part go up
 			
-			local direction: Vector3 = (mousePosition - rootPart.Position).Unit
+			local direction: Vector3 = (mousePosition - rightArmCFrame.Position).Unit
 			applyKnockback(brick, direction, self.THROW_FORCE, self.THROW_LIFT)
 		end)
 	end,
@@ -142,7 +120,7 @@ return {
 			if typeof(brickCFrame) ~= "CFrame" then
 				console.warn(`Given brickCFrame was not a CFrame (got {typeof(brickCFrame)})`, "Remote tampering")
 				player:Kick("Remote tampering")
-				return false, "Illegal placement"
+				return false, "Illegal place request"
 			end
 			
 			--# checks
@@ -174,12 +152,17 @@ return {
 		end
 		
 		--# throw brick requests
-		events.throwBrick.OnServerInvoke = function(player: Player, mousePosition: Vector3) : ( boolean, string )
+		events.throwBrick.OnServerInvoke = function(player: Player, mousePosition: Vector3, rightArmCFrame: CFrame) : ( boolean, string )
 			--# 100% tampering, no possible dev errs on client
 			if typeof(mousePosition) ~= "Vector3" then
 				console.warn(`Given mousePosition was not a Vector3 (got {typeof(mousePosition)})`, "Remote tampering")
 				player:Kick("Remote tampering")
-				return false, "Illegal placement"
+				return false, "Illegal throw request"
+			end
+			if typeof(rightArmCFrame) ~= "CFrame" then
+				console.warn(`Given rightArmCFrame was not a CFrame (got {typeof(rightArmCFrame)})`, "Remote tampering")
+				player:Kick("Remote tampering")
+				return false, "Illegal throw request"
 			end
 			
 			--# checks
@@ -192,6 +175,11 @@ return {
 			if not rootPart then
 				return false, "No HumanoidRootPart found"
 			end
+
+			local rightArm: Part? = character:FindFirstChild("Right Arm")
+			if not rightArm then
+				return false, "No Right Arm found"
+			end
 			
 			local humanoid: Humanoid? = character:FindFirstChild("Humanoid")
 			if not humanoid then
@@ -202,8 +190,8 @@ return {
 				return false, "Dead"
 			end
 			
-			print("throw")
-			self:throwBrick(player, mousePosition)
+			--print("throw")
+			self:throwBrick(player, mousePosition, rightArmCFrame)
 			return true
 		end
 		
