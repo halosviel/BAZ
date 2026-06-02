@@ -182,6 +182,10 @@ return {
 			--# keybinds
 			
 			self.buildModeMaid:GiveTask(game.ReplicatedFirst.assets.inputs.BrickControls.PlaceBrick.Pressed:Connect(function()
+				if self.buildModeDisabled then
+					return
+				end
+				
 				if os.clock() - self.lastBuildTimestamp < config.BUILD_PLACE_COOLDOWN then
 					return
 				end

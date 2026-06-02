@@ -32,6 +32,7 @@ type Module = {
 return function(services: Folder)
 	params.expect("Folder", services)
 	
+	--# preload game services
 	local gameServices = {
 		"Players", "RunService", "ReplicatedStorage", "Workspace", "TweenService", "UserInputService", "CollectionService", "ServerStorage",
 		"ServerScriptService", "PathfindingService", "DataStoreService", "MarketplaceService", "HttpService", "TeleportService", "SoundService",
