@@ -8,6 +8,9 @@
 	
 	[EXAMPLES]
 	applyKnockback(part, Vector3.new(0, 0, 1), 25, 5)
+	
+	[UPDATES]
+	2026 June 02: Made the module compatible with parts, not just players specifically.
 ]=]
 
 -- [REQUIRES]
