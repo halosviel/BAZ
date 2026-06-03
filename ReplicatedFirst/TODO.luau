@@ -4,8 +4,7 @@ _=[[
 TODO
 
  now --------
-- implement throwing
-- mobile controls
+- mobile controls <=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<= DO NOW 
 
 
  later ------
