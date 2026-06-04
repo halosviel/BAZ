@@ -123,7 +123,7 @@ return {
 				if isSmallScreen == nil then
 					isSmallScreen = touchJump.isSmallScreen
 				end
-				warn(isSmallScreen)
+				--warn(isSmallScreen)
 				
 				for _, button: ImageButton in self.buttons do
 					local actionName: string = button.Name:match("^[A-Z][a-z]*") --# "Place", "Rotate", "Throw"

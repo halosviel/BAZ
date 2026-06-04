@@ -206,7 +206,7 @@ return {
 					--# no faulty types. any modification is 100% tampering
 					local validated: boolean, message: string? = events.placeBrick:Fire(self.brickPreview.CFrame)
 					if validated then
-						soundUtils.wrap("PlaceBrick")
+						soundUtils.wrap("BrickPlace")
 							:clone()
 							:setParent(game.SoundService)
 							:autoDestroy()
