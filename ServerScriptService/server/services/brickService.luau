@@ -23,6 +23,7 @@ local dataService = require("./dataService")
 local config = require("@game/ReplicatedFirst/shared/modules/config")
 local events = require("@game/ReplicatedFirst/shared/modules/events")
 local applyKnockback = require("@game/ReplicatedFirst/shared/utils/applyKnockback")
+local soundUtils = require("@game/ReplicatedFirst/shared/utils/soundUtils")
 
 -- [TYPES]
 type self = {
@@ -37,7 +38,7 @@ type self = {
 	-- [FUNCTIONS]
 	constructor: ( self: self ) -> nil,
 	placeBrick: ( self: self, player: Player, brickCFrame: CFrame ) -> nil,
-	throwBrick: ( self: self, player: Player, mousePosition: Vector3, rightArmCFrame: CFrame ) -> nil,
+	throwBrick: ( self: self, player: Player, mousePosition: Vector3, rightArm: Part, rightArmClientCFrame: CFrame ) -> nil,
 	ready: ( self: self ) -> nil
 }
 export type BrickService = self
@@ -92,20 +93,27 @@ return {
 		end)
 	end,
 	
-	throwBrick = function(self: self, player: Player, mousePosition: Vector3, rightArmCFrame: CFrame)
+	throwBrick = function(self: self, player: Player, mousePosition: Vector3, rightArm: Part, rightArmClientCFrame: CFrame)
 		dataService:read(player, "brickSkin"):andThen(function(brickSkinName: string)
 			local brickSkin: Part? = game.ReplicatedFirst.assets.bricks:FindFirstChild(brickSkinName)
 			if not brickSkin then
 				brickSkin = game.ReplicatedFirst.assets.bricks:FindFirstChild("Default")
 			end
 			
+			soundUtils.wrap("BrickThrow")
+				:clone()
+				:setParent(rightArm)
+				:autoDestroy()
+				:setRandomPitch(0.2)
+				:play()
+			
 			local brick: Part = brickSkin:Clone()
 			brick.Anchored = false
 			brick.Parent = workspace.dynamic.bricks
-			brick.Position = rightArmCFrame.Position - rightArmCFrame.UpVector * self.THROW_OFFSET
+			brick.Position = rightArmClientCFrame.Position - rightArmClientCFrame.UpVector * self.THROW_OFFSET
 			--# ^ use upVector since the arm is rotated like that -> lookVector makes part go up
 			
-			local direction: Vector3 = (mousePosition - rightArmCFrame.Position).Unit
+			local direction: Vector3 = (mousePosition - rightArmClientCFrame.Position).Unit
 			applyKnockback(brick, direction, self.THROW_FORCE, self.THROW_LIFT)
 		end)
 	end,
@@ -152,15 +160,15 @@ return {
 		end
 		
 		--# throw brick requests
-		events.throwBrick.OnServerInvoke = function(player: Player, mousePosition: Vector3, rightArmCFrame: CFrame) : ( boolean, string )
+		events.throwBrick.OnServerInvoke = function(player: Player, mousePosition: Vector3, rightArmClientCFrame: CFrame) : ( boolean, string )
 			--# 100% tampering, no possible dev errs on client
 			if typeof(mousePosition) ~= "Vector3" then
 				console.warn(`Given mousePosition was not a Vector3 (got {typeof(mousePosition)})`, "Remote tampering")
 				player:Kick("Remote tampering")
 				return false, "Illegal throw request"
 			end
-			if typeof(rightArmCFrame) ~= "CFrame" then
-				console.warn(`Given rightArmCFrame was not a CFrame (got {typeof(rightArmCFrame)})`, "Remote tampering")
+			if typeof(rightArmClientCFrame) ~= "CFrame" then
+				console.warn(`Given rightArmCFrame was not a CFrame (got {typeof(rightArmClientCFrame)})`, "Remote tampering")
 				player:Kick("Remote tampering")
 				return false, "Illegal throw request"
 			end
@@ -191,7 +199,7 @@ return {
 			end
 			
 			--print("throw")
-			self:throwBrick(player, mousePosition, rightArmCFrame)
+			self:throwBrick(player, mousePosition, rightArm, rightArmClientCFrame)
 			return true
 		end
 		
