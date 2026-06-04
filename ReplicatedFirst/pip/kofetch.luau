@@ -12,7 +12,7 @@
 ]=]
 
 -- [CONFIG]
-local message = ([[session started
+local message = ([[running
 		
  ____ ____ ____ 
 ||p |||i |||p ||

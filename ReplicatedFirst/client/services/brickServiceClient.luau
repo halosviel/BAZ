@@ -19,6 +19,7 @@
 local console = require("@game/ReplicatedFirst/pip/console")
 
 local dataServiceClient = require("@game/ReplicatedFirst/client/services/dataServiceClient")
+local interfaceService = require("@game/ReplicatedFirst/client/services/interfaceService")
 
 local config = require("@game/ReplicatedFirst/shared/modules/config")
 local events = require("@game/ReplicatedFirst/shared/modules/events")
@@ -36,6 +37,8 @@ type self = {
 
 	-- [ENTRIES]
 	mouse: Mouse,
+	inBuildMode: boolean,
+	
 	activeBrickTool: Tool?,
 	brickPreview: Part?,
 	brickRotation: number,
@@ -62,6 +65,8 @@ return {
 		self.INVALID_BUILD_COLOR = Color3.fromRGB(255, 61, 64)
 		
 		self.mouse = game.Players.LocalPlayer:GetMouse()
+		self.inBuildMode = false
+		
 		self.activeBrickTool = nil
 		self.brickPreview = nil
 		self.brickRotation = 0
@@ -78,6 +83,8 @@ return {
 		end
 		
 		dataServiceClient:read("brickSkin"):andThen(function(brickSkinName: string)
+			self.inBuildMode = true
+			
 			--# create brick preview
 			
 			local brickSkin: Part? = game.ReplicatedFirst.assets.bricks:FindFirstChild(brickSkinName)
@@ -262,6 +269,9 @@ return {
 					end
 				end
 			end))
+			
+			--# enable UI
+			interfaceService:setMobileControlsEnabled(true)
 		end)
 	end,
 	
@@ -269,6 +279,11 @@ return {
 		if self.buildModeMaid then
 			self.buildModeMaid:DoCleaning()
 		end
+		
+		self.inBuildMode = false
+		
+		--# disable UI
+		interfaceService:setMobileControlsEnabled(false)
 	end,
 	
 	ready = function(self: self)
