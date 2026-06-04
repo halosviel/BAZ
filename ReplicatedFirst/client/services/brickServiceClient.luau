@@ -97,6 +97,7 @@ return {
 			self.brickPreview.CanCollide = false
 			self.brickPreview.Parent = workspace.dynamic
 			self.buildModeMaid:GiveTask(self.brickPreview)
+			
 			--# position brick preview
 			
 			self.buildModeMaid:GiveTask(game.RunService.RenderStepped:Connect(function()
@@ -126,6 +127,20 @@ return {
 					TODO: fix jittering when hovering over far walls. 
 					
 					also half clanker code
+				]]
+				
+				--[[
+				
+				
+				
+				
+				
+					TODO: make ray ignore button?
+					
+					
+					
+					
+					
 				]]
 				
 				local params = RaycastParams.new()
