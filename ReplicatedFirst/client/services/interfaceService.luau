@@ -7,13 +7,20 @@ local console = require("@game/ReplicatedFirst/pip/console")
 local params = require("@game/ReplicatedFirst/pip/params")
 
 -- [TYPES]
+type Offset = {
+	x: number,
+	y: number
+}
+
 type TouchJump = {
 	isSmallScreen: boolean,
 	isSmallScreenChanged: typeof(require("@game/ReplicatedFirst/shared/libs/cuteSignal").new())
 }
+
 type self = {
 	SMALL_BUTTON_SIZE: number,
 	LARGE_BUTTON_SIZE: number,
+	PLACE_BUTTON_OFFSET: Offset,
 	
 	constructor: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
@@ -27,6 +34,7 @@ return {
 		-- sizes are 70% of jump button
 		self.SMALL_BUTTON_SIZE = 42
 		self.LARGE_BUTTON_SIZE = 90
+		self.PLACE_BUTTON_OFFSET = { x = 10, y = 10 }
 	end,
 	
 	ready = function(self: self)
@@ -41,30 +49,44 @@ return {
 			local touchJump: TouchJump = require(game.Players.LocalPlayer.PlayerScripts:WaitForChild("PlayerModule").ControlModule.TouchJump)
 			
 			--[[
-				Updates the mobile control styling depending on device size,
-				which is imported from the forked TouchJump module.
+				Updates the button's size and position depending on
+				device size, which is imported from the forked
+				TouchJump module.
 				
-				NOTE: Currently only supports one style and one size. So all
-				mobile controls are expected to be the same size across dev-
-				ices.
+				NOTE: The function can fire multiple times, but is
+				negligible for now.
 			]]
-			local function _updateMobileControls(button: ImageButton)
+			local function _updateMobileControls(button: ImageButton, offset: Offset, isSmallScreen: boolean?)
 				params.expect("ImageButton", button)
+				params.expect("table", offset)
+				params.expect("number", offset.x)
+				params.expect("number", offset.y)
 				
-				local isSmallScreen = touchJump.isSmallScreen
-				button.Size = isSmallScreen and self.SMALL_BUTTON_SIZE or self.LARGE_BUTTON_SIZE
+				if isSmallScreen == nil then
+					isSmallScreen = touchJump.isSmallScreen
+				end
+				local sizeXY: number = isSmallScreen and self.SMALL_BUTTON_SIZE or self.LARGE_BUTTON_SIZE
+				
+				--# TODO: CORRECT POSITIONING
+				button.Size = UDim2.fromOffset(sizeXY, sizeXY)
+				button.Position = UDim2.fromScale(1 - sizeXY - offset.x, -1 + sizeXY + offset.y)
 				
 				warn(isSmallScreen)
 			end
 			
 			local function createMobileControls()
 				local placeButton = Instance.new("ImageButton")
+				placeButton.Name = "PlaceBrick"
 				placeButton.BackgroundTransparency = 1
+				placeButton.AnchorPoint = Vector2.new(0, 0)
+				placeButton.Parent = main.dynamic
 				
 				--# initial update + dynamic update since it takes time for the
 				--  variable to be actually set.
-				_updateMobileControls(placeButton)
-				touchJump.isSmallScreenChanged:Connect(_updateMobileControls)
+				_updateMobileControls(placeButton, self.PLACE_BUTTON_OFFSET)
+				touchJump.isSmallScreenChanged:Connect(function(newValue: number)
+					_updateMobileControls(placeButton, self.PLACE_BUTTON_OFFSET, newValue)
+				end)
 			end
 			
 			local function showMobileControls()
