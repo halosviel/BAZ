@@ -100,7 +100,7 @@ return {
 		self.mobileControlsEnabled = enabled
 		self.mobileControlsEnabledChanged:Fire(enabled)
 	end,
-	
+ 	
 	ready = function(self: self)
 		local startTimestamp = os.clock()
 		

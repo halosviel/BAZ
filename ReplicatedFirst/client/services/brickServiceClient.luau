@@ -119,6 +119,16 @@ return {
 					return
 				end
 				
+				--# dont udpate on button press
+				
+				local touchPos = game:GetService("UserInputService"):GetMouseLocation()
+				local guiObjects = game.Players.LocalPlayer.PlayerGui:GetGuiObjectsAtPosition(touchPos.X, touchPos.Y)
+				
+				print(guiObjects)
+				if #guiObjects > 1 then
+					return
+				end
+				
 				--# raycast
 				--[[
 					If for some reason the result or its Instance is nil (in the void/out
@@ -127,20 +137,6 @@ return {
 					TODO: fix jittering when hovering over far walls. 
 					
 					also half clanker code
-				]]
-				
-				--[[
-				
-				
-				
-				
-				
-					TODO: make ray ignore button?
-					
-					
-					
-					
-					
 				]]
 				
 				local params = RaycastParams.new()
