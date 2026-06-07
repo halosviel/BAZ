@@ -121,11 +121,10 @@ return {
 				
 				--# dont udpate on button press
 				
-				local touchPos = game:GetService("UserInputService"):GetMouseLocation()
-				local guiObjects = game.Players.LocalPlayer.PlayerGui:GetGuiObjectsAtPosition(touchPos.X, touchPos.Y)
-				
-				print(guiObjects)
-				if #guiObjects > 1 then
+				if os.clock() - self.lastThrowTimestamp < 0.2 then
+					return
+				end
+				if os.clock() - self.lastBuildTimestamp < 0.2 then
 					return
 				end
 				
