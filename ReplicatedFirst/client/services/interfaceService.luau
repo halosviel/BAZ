@@ -182,7 +182,24 @@ return {
 		
 		--# Desktop Controls Label
 		do
+			local function isGuiStillValid() : boolean
+				if not main then
+					return false
+				end
+				if not main:FindFirstChild("dynamic") then
+					return false
+				end
+				if not main.dynamic:FindFirstChild("DesktopControlLabels") then
+					return false
+				end
+				return true
+			end
+			
 			self.mobileControlsEnabledChanged:Connect(function(newValue: boolean)
+				if not isGuiStillValid() then
+					return
+				end
+				
 				if newValue == true then
 					if game.UserInputService.PreferredInput == Enum.PreferredInput.KeyboardAndMouse then
 						main.dynamic.DesktopControlLabels.Visible = true
@@ -193,6 +210,10 @@ return {
 			end)
 			
 			game.UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(function(value)
+				if not isGuiStillValid() then
+					return
+				end
+				
 				if value == Enum.PreferredInput.KeyboardAndMouse then
 					if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild(config.BUILD_TOOL_NAME) then
 						main.dynamic.DesktopControlLabels.Visible = true

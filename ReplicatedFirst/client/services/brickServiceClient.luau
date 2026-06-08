@@ -276,6 +276,7 @@ return {
 			end))
 			
 			--# enable UI
+			local playerGui: PlayerGui = game.Players.LocalPlayer.PlayerGui
 			interfaceService:setMobileControlsEnabled(true)
 		end)
 	end,

@@ -4,7 +4,6 @@ _=[[
 TODO
 
  now --------
-- fix mobile button presses updating brick preview pos
 - fix mobile controls breaking after death
 - make mobile controls easier?? (see babft)
 
