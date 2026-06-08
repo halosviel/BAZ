@@ -99,7 +99,7 @@ return {
 			self.buildModeMaid:GiveTask(self.brickPreview)
 			
 			--# position brick preview
-			
+			local last
 			self.buildModeMaid:GiveTask(game.RunService.RenderStepped:Connect(function()
 				
 				--# validation
@@ -158,6 +158,11 @@ return {
 				if not result or result and not result.Instance then
 					return
 				end
+				
+				if last == result.Position then
+					return
+				end
+				last = result.Position
 				
 				--# calculate offset accounting for rotation
 				local brickRotationCFrame = CFrame.Angles(0, math.rad(self.brickRotation), 0)
@@ -267,6 +272,7 @@ return {
 					return
 				end
 				
+				print("throw")
 				local validated: boolean, message: string? = events.throwBrick:Fire(self.mouse.Hit.Position, rightArm.CFrame)
 				if validated then
 					self.buildModeDisabled = true
