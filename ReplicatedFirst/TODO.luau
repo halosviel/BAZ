@@ -4,7 +4,7 @@ _=[[
 TODO
 
  now --------
-- fix mobile controls breaking after death
+- fix clock logic (Code should run once per day!!!)
 - make mobile controls easier?? (see babft)
 
 - add zombie burning
@@ -14,7 +14,7 @@ TODO
 - Fix typing in StateMachine
 - Adapt StateMachine to a Pip class
 - Adapt StateMachine to general pupose and publish to GitHub
-- Turn Pip into a package
+- Turn Pip into a fricking package on god atp icl pmo frfr
 
 
 ]]

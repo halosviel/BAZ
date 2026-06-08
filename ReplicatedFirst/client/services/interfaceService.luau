@@ -35,6 +35,8 @@ type self = {
 	PLACE_BUTTON_CONFIG: ButtonConfig,
 	ROTATE_BUTTON_CONFIG: ButtonConfig,
 	THROW_BUTTON_CONFIG: ButtonConfig,
+	DAYS_TEXT: string,
+	DAYS_TO_RESET_TEXT: string,
 	
 	buttons: { ImageButton },
 	mobileControlsEnabledChanged: signal.Signal,
@@ -81,6 +83,8 @@ return {
 				large = 80
 			}
 		}
+		self.DAYS_TEXT = ("DAY %i")
+		self.DAYS_TO_RESET_TEXT = ("clearing builds in %i days")
 		
 		self.buttons = {}
 		self.mobileControlsEnabledChanged = signal.new()
@@ -224,6 +228,23 @@ return {
 			end)
 
 			main.dynamic.DesktopControlLabels.Visible = false
+		end
+		
+		--# Days UI
+		do
+			local function updateDaysLabel()
+				main.static.Days.Text = self.DAYS_TEXT:format(game.ReplicatedFirst.shared.values.Days.Value)
+			end
+			
+			local function updateDaysToResetLabel()
+				main.static.DaysToReset.Text = self.DAYS_TO_RESET_TEXT:format(game.ReplicatedFirst.shared.values.DaysToReset.Value)
+			end
+			
+			game.ReplicatedFirst.shared.values.Days:GetPropertyChangedSignal("Value"):Connect(updateDaysLabel)
+			game.ReplicatedFirst.shared.values.DaysToReset:GetPropertyChangedSignal("Value"):Connect(updateDaysToResetLabel)
+			
+			updateDaysLabel()
+			updateDaysToResetLabel()
 		end
 	end,
 } :: self

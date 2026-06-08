@@ -39,6 +39,7 @@ type self = {
 	constructor: ( self: self ) -> nil,
 	placeBrick: ( self: self, player: Player, brickCFrame: CFrame ) -> nil,
 	throwBrick: ( self: self, player: Player, mousePosition: Vector3, rightArm: Part, rightArmClientCFrame: CFrame ) -> nil,
+	clearAllBricks: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
 }
 export type BrickService = self
@@ -118,6 +119,12 @@ return {
 		end)
 	end,
 	
+	--# used by clock daemon
+	clearAllBricks = function(self: self)
+		workspace.dynamic.bricks:ClearAllChildren()
+		console.log(`Cleared bricks on day {game.ReplicatedFirst.shared.values.Days.Value}`)
+	end,
+	
 	ready = function(self: self)
 		
 		--# [EVENTS]
@@ -183,7 +190,7 @@ return {
 			if not rootPart then
 				return false, "No HumanoidRootPart found"
 			end
-
+			
 			local rightArm: Part? = character:FindFirstChild("Right Arm")
 			if not rightArm then
 				return false, "No Right Arm found"
