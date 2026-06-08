@@ -101,7 +101,6 @@ return {
 			--# position brick preview
 			local last
 			self.buildModeMaid:GiveTask(game.RunService.RenderStepped:Connect(function()
-				
 				--# validation
 				
 				local character: Model? = game.Players.LocalPlayer.Character
@@ -116,15 +115,6 @@ return {
 				
 				local camera: Camera? = workspace.CurrentCamera
 				if not camera then
-					return
-				end
-				
-				--# dont udpate on button press
-				
-				if os.clock() - self.lastThrowTimestamp < 0.2 then
-					return
-				end
-				if os.clock() - self.lastBuildTimestamp < 0.2 then
 					return
 				end
 				
@@ -272,8 +262,7 @@ return {
 					return
 				end
 				
-				print("throw")
-				local validated: boolean, message: string? = events.throwBrick:Fire(self.mouse.Hit.Position, rightArm.CFrame)
+				local validated: boolean, message: string? = events.throwBrick:Fire(self.brickPreview.Position, rightArm.CFrame)
 				if validated then
 					self.buildModeDisabled = true
 					task.delay(config.BUILD_THROW_COOLDOWN, function()
