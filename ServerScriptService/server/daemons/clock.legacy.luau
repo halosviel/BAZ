@@ -11,7 +11,7 @@
 ]=]
 
 -- [CONFIG]
-local UPDATE_INTERVAL = 0.01
+local UPDATE_INTERVAL = 0.1
 local UPDATE_VALUE = 0.025
 
 local DAY_TIME = 6
@@ -34,16 +34,16 @@ local lastDay = game.ReplicatedFirst.shared.values.Days.Value
 while true do
 	game.Lighting.ClockTime += UPDATE_VALUE
 	local clockTime: number = math.floor(game.Lighting.ClockTime)
-
+	
 	--# start/stop zombie spawning (same as before, but with flags)
 	if clockTime == DAY_TIME and zombieService:isRunning() then
 		zombieService:stopSpawning()
 	end
-
+	
 	if clockTime == NIGHT_TIME and not zombieService:isRunning() then
 		zombieService:startSpawning()
 	end
-
+	
 	--# increment days - check if sunrise happened AND day changed
 	if clockTime == SUNRISE_TIME then
 		local currentDay = game.ReplicatedFirst.shared.values.Days.Value
@@ -54,12 +54,12 @@ while true do
 		end
 		lastDay = game.ReplicatedFirst.shared.values.Days.Value
 	end
-
+	
 	--# reset builds (this one's fine as is!)
 	if game.ReplicatedFirst.shared.values.DaysToReset.Value == 0 then
 		brickService:clearAllBricks()
 		game.ReplicatedFirst.shared.values.DaysToReset.Value = BUILD_CLEAR_INTERVAL
 	end
-
+	
 	task.wait(UPDATE_INTERVAL)
 end

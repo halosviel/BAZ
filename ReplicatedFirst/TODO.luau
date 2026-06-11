@@ -5,9 +5,8 @@ TODO
 
  now --------
 - fix clock logic (Code should run once per day!!!)
-- make mobile controls easier?? (see babft)
-
 - add zombie burning
+- make mobile controls easier?? (see babft)
 
 
  later ------
