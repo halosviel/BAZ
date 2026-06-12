@@ -784,7 +784,7 @@ return class {
 		]]
 		do
 			local onFire = false
-			local partsOnFire: { Part } = {}
+			local particles: { ParticleEmitter } = {}
 			
 			local function addFire()
 				if onFire then
@@ -809,7 +809,7 @@ return class {
 					local fireParticles: ParticleEmitter = game.ReplicatedFirst.assets.models.FireParticles:Clone()
 					fireParticles.Parent = randomLimb
 					
-					table.insert(partsOnFire, randomLimb)
+					table.insert(particles, fireParticles)
 				end
 				
 				onFire = true
@@ -820,19 +820,11 @@ return class {
 					return
 				end
 				
-				for _, limb: Part in partsOnFire do
-					--# use nested loop to catch uncleaned clones (juuuust in case (lowk dc about performance atp 🥀))
-					for _, child: Instance in limb:GetChildren() do
-						if child:IsA("ParticleEmitter") then
-							child:Destroy()
-						end
-						
-						table.remove(partsOnFire, table.find(partsOnFire, limb))
-					end
+				for _, fireParticles: ParticleEmitter in particles do
+					fireParticles:Destroy()
 				end
 				
-				table.clear(partsOnFire)
-				
+				table.clear(particles)
 				onFire = false
 			end
 			
@@ -860,7 +852,6 @@ return class {
 					--# BURNNNNNN
 					--# WARNING: hardcoded bc cyclic dependency to clockService
 					if game.Lighting.ClockTime > 7 and game.Lighting.ClockTime < 17 then
-						
 						--# add fire (has cd)
 						addFire()
 						
