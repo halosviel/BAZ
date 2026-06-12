@@ -261,5 +261,22 @@ return {
 				_updateLabels(dayData)
 			end)
 		end
+		
+		--# Time UI
+		do
+			local function updateTime()
+				local hours = math.floor(game.Lighting.ClockTime)
+				
+				local period = hours >= 12 and "PM" or "AM"
+				local displayHours = hours % 12
+				if displayHours == 0 then
+					displayHours = 12
+				end
+				main.static.Time.Text = string.format("%d %s", displayHours, period)
+			end
+			
+			updateTime()
+			game.Lighting:GetPropertyChangedSignal("ClockTime"):Connect(updateTime)
+		end
 	end,
 } :: self
