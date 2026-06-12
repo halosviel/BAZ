@@ -99,6 +99,9 @@ local DAMAGE = { min = 5, max = 20 } -- randomised per hit
 local DAMAGE_INTERVAL = 1
 local DAMAGE_HIGHLIGHT_LIFETIME = 0.2 -- how long the red highlight lasts for when the zombies takes damage
 local NOISE_INTERVAL = { min = 5, max = 15 } -- how often the zombie will make noises
+local BURN_CHECK_INTERVAL = 1
+local BURN_DAMAGE = 15
+local MAX_BURNING_LIMBS = { min = 1, max = 2 } -- the random number of body parts that will catch fire when burning 
 
 -->
 
@@ -776,9 +779,62 @@ return class {
 			considered to have nothing over their head and will burn.
 		]]
 		do
+			local onFire = false
+			local partsOnFire: { Part } = {}
+			
+			local function addFire()
+				if onFire then
+					return
+				end
+				
+				local limbs: { Part } = {}
+				for _, obj: Instance in self.model:GetChildren() do
+					if not obj:IsA("BasePart") then
+						continue
+					end
+					if obj == self.root then
+						continue
+					end
+					
+					table.insert(limbs, obj)
+				end
+				
+				for i = 1, math.random(MAX_BURNING_LIMBS.min, MAX_BURNING_LIMBS.max) do
+					local randomLimb: Part = limbs[math.random(1, #limbs)]
+					
+					local fireParticles: ParticleEmitter = game.ReplicatedFirst.assets.models.FireParticles:Clone()
+					fireParticles.Parent = randomLimb
+					
+					table.insert(partsOnFire, randomLimb)
+				end
+				
+				onFire = true
+			end
+			
+			local function removeFire()
+				if not onFire then
+					return
+				end
+				
+				for _, limb: Part in partsOnFire do
+					--# use nested loop to catch uncleaned clones (juuuust in case (lowk dc about performance atp 🥀))
+					for _, child: Instance in part:GetChildren() do
+						if child:IsA("ParticleEmitter") then
+							child:Destroy()
+						end
+						
+						table.remove(partsOnFire, table.find(partsOnFire, limb))
+					end
+				end
+				
+				table.clear(partsOnFire)
+				
+				onFire = false
+			end
+			
 			self.maid:GiveTask(task.defer(function()
 				while true do
-					task.wait(1)
+					task.wait(BURN_CHECK_INTERVAL)
 					
 					local origin = self.root.Position + Vector3.new(0, SPAWN_RAYCAST_Y, 0)
 					local result: RaycastResult? = workspace:Raycast(origin, self.root.Position - origin)
@@ -791,12 +847,23 @@ return class {
 						return
 					end
 					
+					--# roof! :D
 					if not result.Instance:IsDescendantOf(self.model) then
+						removeFire()
 						return
 					end
 					
+					--# BURNNNNNN
+					--# WARNING: hardcoded bc cyclic dependency to clockService
 					if game.Lighting.ClockTime > 7 and game.Lighting.ClockTime < 17 then
-						print("burning")
+						
+						--# add fire (has cd)
+						addFire()
+						
+						--# take damage
+						self.humanoid.Health -= BURN_DAMAGE
+					else
+						removeFire() --# also has cd
 					end
 				end
 			end))
