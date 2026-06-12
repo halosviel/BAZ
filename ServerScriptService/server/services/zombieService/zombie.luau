@@ -359,7 +359,7 @@ return class {
 								exit()
 								return
 							end
-
+							
 							local rootPart: Part? = self.target:FindFirstChild("HumanoidRootPart")
 							if not rootPart then
 								exit()
@@ -369,7 +369,7 @@ return class {
 								exit()
 								return
 							end
-
+							
 							local humanoid: Humanoid? = self.target:FindFirstChild("Humanoid")
 							if not humanoid then
 								exit()
@@ -692,6 +692,10 @@ return class {
 				
 				local humanoid: Humanoid? = self.target:FindFirstChild("Humanoid")
 				if not humanoid then
+					return
+				end
+				
+				if self.humanoid.Health == 0 then
 					return
 				end
 				
