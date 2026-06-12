@@ -818,7 +818,7 @@ return class {
 				
 				for _, limb: Part in partsOnFire do
 					--# use nested loop to catch uncleaned clones (juuuust in case (lowk dc about performance atp 🥀))
-					for _, child: Instance in part:GetChildren() do
+					for _, child: Instance in limb:GetChildren() do
 						if child:IsA("ParticleEmitter") then
 							child:Destroy()
 						end
