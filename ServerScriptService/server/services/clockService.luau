@@ -45,7 +45,7 @@ export type ClockService = self
 
 return {
 	constructor = function(self: self)
-		self.UPDATE_INTERVAL = 0.001
+		self.UPDATE_INTERVAL = 0.01
 		self.UPDATE_VALUE = 0.025
 		self.DAY_TIME = 6
 		self.NIGHT_TIME = 18

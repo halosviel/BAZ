@@ -7,4 +7,4 @@
 	It returns the version...
 ]=]
 
-return "v0.0.0"
+return "Alpha"

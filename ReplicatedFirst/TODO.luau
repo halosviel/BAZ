@@ -4,7 +4,7 @@ _=[[
 TODO
 
  now --------
-- fix clock logic (Code should run once per day!!!)
+- add throw damage
 - add zombie burning
 - make mobile controls easier?? (see babft)
 

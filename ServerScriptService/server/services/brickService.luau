@@ -32,11 +32,13 @@ type self = {
 	THROW_FORCE: number,
 	THROW_LIFT: number,
 	THROW_OFFSET: Vector3,
+	PROJECTILE_DEAD_SPEED: number,
 	
 	-- [ENTRIES]
 	
 	-- [FUNCTIONS]
 	constructor: ( self: self ) -> nil,
+	_calculateBrickDamage: ( self: self, brickVelocity: number ) -> number,
 	placeBrick: ( self: self, player: Player, brickCFrame: CFrame ) -> nil,
 	throwBrick: ( self: self, player: Player, mousePosition: Vector3, rightArm: Part, rightArmClientCFrame: CFrame ) -> nil,
 	clearAllBricks: ( self: self ) -> nil,
@@ -52,6 +54,11 @@ return {
 		self.THROW_FORCE = 50
 		self.THROW_LIFT = 10
 		self.THROW_OFFSET = 4 -- offset from the right arm's lookVector
+		self.PROJECTILE_DEAD_SPEED = 5 -- speed for hit detection to stop
+	end,
+	
+	_calculateBrickDamage = function(self: self, brickVelocity: number) : number
+		return brickVelocity * 0.8
 	end,
 	
 	placeBrick = function(self: self, player: Player, brickCFrame: CFrame)
@@ -116,6 +123,43 @@ return {
 			
 			local direction: Vector3 = (mousePosition - rightArmClientCFrame.Position).Unit
 			applyKnockback(brick, direction, self.THROW_FORCE, self.THROW_LIFT)
+			
+			--# Hit detection
+			
+			local con: RBXScriptConnection?
+			local hitDescendantsIgnoreList: { Instance } = {} --# table of objects whose descendants do not trigger hit detection twice
+														  --# basically parts & characters
+			
+			task.delay(0.25, function()
+				local function disconnectHitDetection()
+					if con then
+						con:Disconnect()
+						con = nil
+					end
+				end
+				
+				con = game.RunService.Heartbeat:Connect(function()
+					if not brick then
+						disconnectHitDetection()
+						return
+					end
+					
+					--# stopped moving/not enough speed to damage
+					if brick.AssemblyLinearVelocity.Magnitude < self.PROJECTILE_DEAD_SPEED then
+						disconnectHitDetection()
+						return
+					end
+					
+					local touchingParts: { Part } = brick:GetTouchingParts()
+					for _, part: Part in touchingParts do
+						local humanoid: Humanoid? = part.Parent:FindFirstChild("Humanoid") or part.Parent.Parent:FindFirstChild("Humanoid")
+						if humanoid and humanoid.Health > 0 and not table.find(hitDescendantsIgnoreList, humanoid.Parent) then
+							humanoid.Health -= self:_calculateBrickDamage(brick.AssemblyLinearVelocity.Magnitude)
+							table.insert(hitDescendantsIgnoreList, humanoid.Parent)
+						end
+					end
+				end)
+			end)
 		end)
 	end,
 	
