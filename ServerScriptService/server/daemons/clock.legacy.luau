@@ -11,7 +11,7 @@
 ]=]
 
 -- [CONFIG]
-local UPDATE_INTERVAL = 0.1
+local UPDATE_INTERVAL = 0.001
 local UPDATE_VALUE = 0.025
 
 local DAY_TIME = 6
@@ -26,39 +26,40 @@ local brickService = require("../services/brickService")
 -->
 
 --# initial values
+game.Lighting.ClockTime = SUNRISE_TIME
 game.ReplicatedFirst.shared.values.Days.Value = 1
 game.ReplicatedFirst.shared.values.DaysToReset.Value = BUILD_CLEAR_INTERVAL
 
-local lastDay = game.ReplicatedFirst.shared.values.Days.Value
+local lastHour = game.Lighting.ClockTime
 
 while true do
 	game.Lighting.ClockTime += UPDATE_VALUE
-	local clockTime: number = math.floor(game.Lighting.ClockTime)
+	local currentHour: number = math.floor(game.Lighting.ClockTime)
 	
-	--# start/stop zombie spawning (same as before, but with flags)
-	if clockTime == DAY_TIME and zombieService:isRunning() then
-		zombieService:stopSpawning()
-	end
-	
-	if clockTime == NIGHT_TIME and not zombieService:isRunning() then
-		zombieService:startSpawning()
-	end
-	
-	--# increment days - check if sunrise happened AND day changed
-	if clockTime == SUNRISE_TIME then
-		local currentDay = game.ReplicatedFirst.shared.values.Days.Value
-		if currentDay == lastDay then
-			-- only increment once per sunrise
+	if currentHour ~= lastHour then
+		lastHour = currentHour
+		
+		--# start/stop zombie spawning (same as before, but with flags)
+		if currentHour == DAY_TIME and zombieService:isRunning() then
+			zombieService:stopSpawning()
+		end
+		
+		if currentHour == NIGHT_TIME and not zombieService:isRunning() then
+			zombieService:startSpawning()
+		end
+		
+		--# increment days - check if sunrise happened
+		if currentHour == SUNRISE_TIME then
 			game.ReplicatedFirst.shared.values.Days.Value += 1
 			game.ReplicatedFirst.shared.values.DaysToReset.Value -= 1
+			warn(game.ReplicatedFirst.shared.values.Days.Value, game.ReplicatedFirst.shared.values.DaysToReset.Value)
 		end
-		lastDay = game.ReplicatedFirst.shared.values.Days.Value
-	end
-	
-	--# reset builds (this one's fine as is!)
-	if game.ReplicatedFirst.shared.values.DaysToReset.Value == 0 then
-		brickService:clearAllBricks()
-		game.ReplicatedFirst.shared.values.DaysToReset.Value = BUILD_CLEAR_INTERVAL
+		
+		--# reset builds (this one's fine as is!)
+		if game.ReplicatedFirst.shared.values.DaysToReset.Value == 0 then
+			brickService:clearAllBricks()
+			game.ReplicatedFirst.shared.values.DaysToReset.Value = BUILD_CLEAR_INTERVAL
+		end
 	end
 	
 	task.wait(UPDATE_INTERVAL)
