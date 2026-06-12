@@ -4,7 +4,6 @@ _=[[
 TODO
 
  now --------
-- investigate why cant throw
 - add zombie burning
 - make mobile controls easier?? (see babft)
 

@@ -33,6 +33,7 @@ type self = {
 	THROW_LIFT: number,
 	THROW_OFFSET: Vector3,
 	PROJECTILE_DEAD_SPEED: number,
+	BRICK_HEALTH: number,
 	
 	-- [ENTRIES]
 	
@@ -55,6 +56,7 @@ return {
 		self.THROW_LIFT = 10
 		self.THROW_OFFSET = 4 -- offset from the right arm's lookVector
 		self.PROJECTILE_DEAD_SPEED = 5 -- speed for hit detection to stop
+		self.BRICK_HEALTH = 100
 	end,
 	
 	_calculateBrickDamage = function(self: self, brickVelocity: number) : number
@@ -70,7 +72,7 @@ return {
 
 			local brick: Part = brickSkin:Clone()
 			brick:SetAttribute("Owner", player.UserId)
-			brick:SetAttribute("Health", 100) --# might scale with more bricks in future, hmm
+			brick:SetAttribute("Health", self.BRICK_HEALTH) --# might scale with more bricks in future, hmm
 			
 			--# snap the inconsistencies
 			
@@ -121,6 +123,9 @@ return {
 			brick.Position = rightArmClientCFrame.Position - rightArmClientCFrame.UpVector * self.THROW_OFFSET
 			--# ^ use upVector since the arm is rotated like that -> lookVector makes part go up
 			
+			brick:SetAttribute("Owner", player.UserId)
+			brick:SetAttribute("Health", self.BRICK_HEALTH)
+			
 			local direction: Vector3 = (mousePosition - rightArmClientCFrame.Position).Unit
 			applyKnockback(brick, direction, self.THROW_FORCE, self.THROW_LIFT)
 			
@@ -129,7 +134,6 @@ return {
 			local con: RBXScriptConnection?
 			local hitDescendantsIgnoreList: { Instance } = {} --# table of objects whose descendants do not trigger hit detection twice
 														  --# basically parts & characters
-			
 			task.delay(0.25, function()
 				local function disconnectHitDetection()
 					if con then
@@ -151,13 +155,18 @@ return {
 					end
 					
 					local touchingParts: { Part } = brick:GetTouchingParts()
+					local damage: number = self:_calculateBrickDamage(brick.AssemblyLinearVelocity.Magnitude)
+					
 					for _, part: Part in touchingParts do
+						
+						--# players
+						
 						local humanoid: Humanoid? = part.Parent:FindFirstChild("Humanoid") or part.Parent.Parent:FindFirstChild("Humanoid")
 						if humanoid and humanoid.Health > 0 and not table.find(hitDescendantsIgnoreList, humanoid.Parent) then
-							humanoid.Health -= self:_calculateBrickDamage(brick.AssemblyLinearVelocity.Magnitude)
+							humanoid.Health -= damage
 							table.insert(hitDescendantsIgnoreList, humanoid.Parent)
 							
-							if humanoid.Health == 0 then
+							if humanoid.Health <= 0 then
 								soundUtils.wrap("BrickKillDefault")
 									:clone()
 									:setParent(part)
@@ -174,8 +183,52 @@ return {
 									:setRandomPitch(0.1)
 									:play()
 							end
+						end
+						
+						--# blocks
+						
+						if part.Parent == workspace.dynamic.bricks and not table.find(hitDescendantsIgnoreList, part) then
+							table.insert(hitDescendantsIgnoreList, part)
 							
-							continue
+							local health: number = part:GetAttribute("Health") or self.BRICK_HEALTH
+							local newHealth: number = health - damage
+							
+							if newHealth <= 0 then
+								--# destroy
+								local partPosition = part.Position
+								part:Destroy()
+								
+								local soundPart = Instance.new("Part")
+								soundPart.Size = Vector3.new(1, 1, 1)
+								soundPart.Transparency = 1
+								soundPart.CanCollide = false
+								soundPart.CanQuery = false
+								soundPart.CanTouch = false
+								soundPart.Position = partPosition
+								soundPart.Anchored = true
+								soundPart.Parent = workspace.dynamic
+
+								soundUtils.wrap("BrickBreak")
+									:clone()
+									:setParent(soundPart)
+									:autoDestroy()
+									:setRandomPitch(0.1)
+									:play()
+									:onDestroy(function()
+										soundPart:Destroy()
+									end)
+								
+								game.Debris:AddItem(soundPart, 3) --# fallback
+							else
+								--# reduce health
+								part:SetAttribute("Health", newHealth)
+								soundUtils.wrap("BrickDamaged")
+									:clone()
+									:setParent(part)
+									:autoDestroy()
+									:setRandomPitch(0.1)
+									:play()
+							end
 						end
 					end
 				end)
