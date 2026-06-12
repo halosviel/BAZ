@@ -279,6 +279,8 @@ return {
 			local playerGui: PlayerGui = game.Players.LocalPlayer.PlayerGui
 			interfaceService:setMobileControlsEnabled(true)
 		end)
+		
+		--print("entered build mode")
 	end,
 	
 	exitBuildMode = function(self: self)
@@ -287,9 +289,11 @@ return {
 		end
 		
 		self.inBuildMode = false
+		self.buildModeDisabled = false
 		
 		--# disable UI
 		interfaceService:setMobileControlsEnabled(false)
+		--print("exited build mode")
 	end,
 	
 	ready = function(self: self)

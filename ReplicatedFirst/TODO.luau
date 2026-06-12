@@ -4,7 +4,7 @@ _=[[
 TODO
 
  now --------
-- test throw sounds
+- investigate why cant throw
 - add zombie burning
 - make mobile controls easier?? (see babft)
 
