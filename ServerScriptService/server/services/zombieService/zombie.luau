@@ -734,7 +734,7 @@ return class {
 				if self.humanoid.Health < lastHealth then
 					--# sound
 					local randomSound: Sound = damageSounds[math.random(1, #damageSounds)]
-					soundUtils.wrap("ZombieAttack")
+					soundUtils.wrap("ZombieDamage")
 						:clone()
 						:setParent(self.root)
 						:setRandomPitch(0.2)
