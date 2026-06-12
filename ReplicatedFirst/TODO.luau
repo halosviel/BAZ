@@ -4,7 +4,6 @@ _=[[
 TODO
 
  now --------
-- add zombie burning
 - player ragdoll
 - clear builds button
 
