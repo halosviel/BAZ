@@ -160,7 +160,7 @@ return {
 							if humanoid.Health == 0 then
 								soundUtils.wrap("BrickKillDefault")
 									:clone()
-									:setParent(rightArm)
+									:setParent(part)
 									:autoDestroy()
 									:setRandomPitch(0.25)
 									:play()
@@ -169,11 +169,13 @@ return {
 								local randomHitSound = hitSounds[math.random(1, #hitSounds)]
 								soundUtils.wrap(randomHitSound)
 									:clone()
-									:setParent(rightArm)
+									:setParent(part)
 									:autoDestroy()
 									:setRandomPitch(0.1)
 									:play()
 							end
+							
+							continue
 						end
 					end
 				end)

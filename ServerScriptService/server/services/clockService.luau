@@ -45,7 +45,7 @@ export type ClockService = self
 
 return {
 	constructor = function(self: self)
-		self.UPDATE_INTERVAL = 0.01
+		self.UPDATE_INTERVAL = 1
 		self.UPDATE_VALUE = 0.025
 		self.DAY_TIME = 6
 		self.NIGHT_TIME = 18
@@ -54,7 +54,7 @@ return {
 		
 		self.time = 0 --# immediately set in ready | in rounded hours
 		self.lastHour = 0 --# immediately set in ready | past record of self.time
-		self.day = 1
+		self.day = 0
 		self.daysToReset = self.BUILD_CLEAR_INTERVAL
 	end,
 	
