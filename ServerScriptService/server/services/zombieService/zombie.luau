@@ -771,13 +771,17 @@ return class {
 		end
 		
 		--# Burning
+		--[[
+			if a raycast from high above hits the zombie, then they are
+			considered to have nothing over their head and will burn.
+		]]
 		do
 			self.maid:GiveTask(task.defer(function()
 				while true do
 					task.wait(1)
 					
-					local origin = self.root.Position + Vector3.new(0, 6, 0)
-					local result: RaycastResult? = workspace:Raycast(origin, Vector3.new((self.root.Position - origin).Unit))
+					local origin = self.root.Position + Vector3.new(0, SPAWN_RAYCAST_Y, 0)
+					local result: RaycastResult? = workspace:Raycast(origin, self.root.Position - origin)
 					
 					if not result then
 						return
@@ -791,7 +795,7 @@ return class {
 						return
 					end
 					
-					if game.Lighting.ClockTime > 7 and  game.Lighting.ClockTime < 17 then
+					if game.Lighting.ClockTime > 7 and game.Lighting.ClockTime < 17 then
 						print("burning")
 					end
 				end
