@@ -207,7 +207,7 @@ return {
 								soundPart.Position = partPosition
 								soundPart.Anchored = true
 								soundPart.Parent = workspace.dynamic
-
+								
 								soundUtils.wrap("BrickBreak")
 									:clone()
 									:setParent(soundPart)

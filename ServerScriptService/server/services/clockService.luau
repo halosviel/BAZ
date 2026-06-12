@@ -45,6 +45,10 @@ export type ClockService = self
 
 return {
 	constructor = function(self: self)
+		--[[
+			WARNING/TODO: there are hardcoded values in zombie module that tried to
+			reference these variables.
+		]]
 		self.UPDATE_INTERVAL = 1
 		self.UPDATE_VALUE = 0.025
 		self.DAY_TIME = 6
