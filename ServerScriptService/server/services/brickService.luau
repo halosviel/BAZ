@@ -122,7 +122,7 @@ return {
 	--# used by clock daemon
 	clearAllBricks = function(self: self)
 		workspace.dynamic.bricks:ClearAllChildren()
-		console.log(`Cleared bricks on day {game.ReplicatedFirst.shared.values.Days.Value}`)
+		console.log(`Cleared bricks`)
 	end,
 	
 	ready = function(self: self)

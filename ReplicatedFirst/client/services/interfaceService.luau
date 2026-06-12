@@ -10,6 +10,9 @@ local signal = require("@game/ReplicatedFirst/shared/libs/cuteSignal")
 local maid = require("@game/ReplicatedFirst/shared/libs/maid")
 local config = require("@game/ReplicatedFirst/shared/modules/config")
 
+local events = require("@game/ReplicatedFirst/shared/modules/events")
+local types = require("@game/ReplicatedFirst/shared/modules/types")
+
 -- [TYPES]
 type Offset = {
 	x: number,
@@ -232,19 +235,31 @@ return {
 		
 		--# Days UI
 		do
-			local function updateDaysLabel()
-				main.static.Days.Text = self.DAYS_TEXT:format(game.ReplicatedFirst.shared.values.Days.Value)
+			local function updateDaysLabel(day: number)
+				main.static.Days.Text = self.DAYS_TEXT:format(day)
 			end
 			
-			local function updateDaysToResetLabel()
-				main.static.DaysToReset.Text = self.DAYS_TO_RESET_TEXT:format(game.ReplicatedFirst.shared.values.DaysToReset.Value)
+			local function updateDaysToResetLabel(daysToReset: number)
+				main.static.DaysToReset.Text = self.DAYS_TO_RESET_TEXT:format(daysToReset)
 			end
 			
-			game.ReplicatedFirst.shared.values.Days:GetPropertyChangedSignal("Value"):Connect(updateDaysLabel)
-			game.ReplicatedFirst.shared.values.DaysToReset:GetPropertyChangedSignal("Value"):Connect(updateDaysToResetLabel)
+			local function _updateLabels(dayData: types.DayData)
+				if not dayData or typeof(dayData) ~= "table" then
+					console.warn("Invalid response for dayData received from the server", `Received value: {tostring(dayData)}`, "Expected table")
+					return
+				end
+				--print("update", dayData.day, dayData.daysToReset)
+				updateDaysLabel(dayData.day)
+				updateDaysToResetLabel(dayData.daysToReset)
+			end
 			
-			updateDaysLabel()
-			updateDaysToResetLabel()
+			-->
+			
+			events.dayDataUpdated.OnClientEvent:Connect(_updateLabels)
+			task.defer(function()
+				local dayData: types.DayData = events.getDayData:Fire()
+				_updateLabels(dayData)
+			end)
 		end
 	end,
 } :: self

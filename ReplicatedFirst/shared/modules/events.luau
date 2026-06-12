@@ -17,5 +17,9 @@ return {
 	--# build system
 	initBrickTool = packet("initBrickTool", packet.Instance),
 	placeBrick = packet("placeBrick", packet.CFrameF24U8):Response(packet.Boolean8, packet.Any),
-	throwBrick = packet("throwBrick", packet.Vector3F24, packet.CFrameF32U16):Response(packet.Boolean8, packet.Any)
+	throwBrick = packet("throwBrick", packet.Vector3F24, packet.CFrameF32U16):Response(packet.Boolean8, packet.Any),
+	
+	--# days
+	getDayData = packet("getDayData"):Response(packet.Any),
+	dayDataUpdated = packet("dayDataUpdated", packet.Any)
 }
