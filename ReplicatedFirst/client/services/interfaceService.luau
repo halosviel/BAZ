@@ -265,13 +265,15 @@ return {
 		--# Time UI
 		do
 			local function updateTime()
+				-- clanker math (i couldn't do it :wilting_rose:)
 				local hours = math.floor(game.Lighting.ClockTime)
-				
 				local period = hours >= 12 and "PM" or "AM"
+				
 				local displayHours = hours % 12
 				if displayHours == 0 then
 					displayHours = 12
 				end
+				
 				main.static.Time.Text = string.format("%d %s", displayHours, period)
 			end
 			
