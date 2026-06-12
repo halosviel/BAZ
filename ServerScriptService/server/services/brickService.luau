@@ -156,6 +156,24 @@ return {
 						if humanoid and humanoid.Health > 0 and not table.find(hitDescendantsIgnoreList, humanoid.Parent) then
 							humanoid.Health -= self:_calculateBrickDamage(brick.AssemblyLinearVelocity.Magnitude)
 							table.insert(hitDescendantsIgnoreList, humanoid.Parent)
+							
+							if humanoid.Health == 0 then
+								soundUtils.wrap("BrickKillDefault")
+									:clone()
+									:setParent(rightArm)
+									:autoDestroy()
+									:setRandomPitch(0.25)
+									:play()
+							else
+								local hitSounds: { Sound } = game.SoundService.sfx.brick.hit:GetChildren()
+								local randomHitSound = hitSounds[math.random(1, #hitSounds)]
+								soundUtils.wrap(randomHitSound)
+									:clone()
+									:setParent(rightArm)
+									:autoDestroy()
+									:setRandomPitch(0.1)
+									:play()
+							end
 						end
 					end
 				end)

@@ -4,7 +4,6 @@ _=[[
 TODO
 
  now --------
-- add throw damage
 - add zombie burning
 - make mobile controls easier?? (see babft)
 
