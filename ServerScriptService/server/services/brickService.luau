@@ -34,6 +34,7 @@ type self = {
 	THROW_OFFSET: Vector3,
 	PROJECTILE_DEAD_SPEED: number,
 	BRICK_HEALTH: number,
+	BLOCK_DAMAGE_MULTIPLIER: number,
 	
 	-- [ENTRIES]
 	
@@ -52,11 +53,12 @@ export type BrickService = self
 return {
 	constructor = function(self: self)
 		self.BUILD_RADIUS_FORGIVEABLE = 4 -- how far outside config.buildRadius the player can build
-		self.THROW_FORCE = 50
-		self.THROW_LIFT = 10
+		self.THROW_FORCE = 60
+		self.THROW_LIFT = 11
 		self.THROW_OFFSET = 4 -- offset from the right arm's lookVector
 		self.PROJECTILE_DEAD_SPEED = 5 -- speed for hit detection to stop
 		self.BRICK_HEALTH = 100
+		self.BLOCK_DAMAGE_MULTIPLIER = 2
 	end,
 	
 	_calculateBrickDamage = function(self: self, brickVelocity: number) : number
@@ -192,7 +194,7 @@ return {
 							table.insert(hitDescendantsIgnoreList, part)
 							
 							local health: number = part:GetAttribute("Health") or self.BRICK_HEALTH
-							local newHealth: number = health - damage
+							local newHealth: number = health - ( damage * self.BLOCK_DAMAGE_MULTIPLIER )
 							
 							if newHealth <= 0 then
 								--# destroy

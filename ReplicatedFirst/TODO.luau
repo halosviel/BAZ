@@ -4,6 +4,12 @@ _=[[
 TODO
 
  now --------
+- BUFF BRICK DAMAGE
+- move time to better place (leaderboard blocking)
+- fix zombie pathfind not triggering
+- add way to see bricks separately
+- delete brick tool
+- block break texture
 - clear builds button
 
 ?? make mobile controls easier? (see babft)
