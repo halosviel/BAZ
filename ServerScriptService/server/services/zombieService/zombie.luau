@@ -458,7 +458,7 @@ return class {
 					
 					--# sound
 					if self.head then
-						soundUtils.wrap("ZombieAttack")
+						soundUtils.wrap("ZombieDied")
 							:clone()
 							:setParent(self.head)
 							:setRandomPitch(0.2)
@@ -740,7 +740,7 @@ return class {
 				if self.humanoid.Health == 0 then
 					self.stateMachine:setState("dead")
 					--# ^ ragdoll + end the zombie lifecycle
-					return
+					--return --# >> let damage sound play on die
 				end
 				
 				--# took damage
