@@ -45,7 +45,7 @@ local globalId = 0
 
 return {
 	constructor = function(self: self)
-		self.MAX_ZOMBIE_COUNT = 100
+		self.MAX_ZOMBIE_COUNT = 150
 		self.ZOMBIE_SPAWN_INTERVAL = { 0, 4 } -- if the max zombie count is not met, zombies will spawn every x seconds to fill the count
 		
 		self.zombies = {}
@@ -130,6 +130,6 @@ return {
 	
 	ready = function(self: self)
 		--# TESTING
-		self:startSpawning(1, 1, true)
+		--self:startSpawning(1, 1, true)
 	end,
 } :: self

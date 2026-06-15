@@ -19,6 +19,7 @@
 local console = require("@game/ReplicatedFirst/pip/console")
 
 local dataService = require("./dataService")
+local brickUtils = require("@game/ServerScriptService/server/modules/brickUtils")
 
 local config = require("@game/ReplicatedFirst/shared/modules/config")
 local events = require("@game/ReplicatedFirst/shared/modules/events")
@@ -34,7 +35,6 @@ type self = {
 	THROW_OFFSET: Vector3,
 	PROJECTILE_DEAD_SPEED: number,
 	BRICK_HEALTH: number,
-	BLOCK_DAMAGE_MULTIPLIER: number,
 	
 	-- [ENTRIES]
 	
@@ -58,7 +58,6 @@ return {
 		self.THROW_OFFSET = 4 -- offset from the right arm's lookVector
 		self.PROJECTILE_DEAD_SPEED = 5 -- speed for hit detection to stop
 		self.BRICK_HEALTH = 100
-		self.BLOCK_DAMAGE_MULTIPLIER = 2
 	end,
 	
 	_calculateBrickDamage = function(self: self, brickVelocity: number) : number
@@ -128,6 +127,8 @@ return {
 			brick:SetAttribute("Owner", player.UserId)
 			brick:SetAttribute("Health", self.BRICK_HEALTH)
 			
+			brick:SetNetworkOwner(nil)
+			
 			local direction: Vector3 = (mousePosition - rightArmClientCFrame.Position).Unit
 			applyKnockback(brick, direction, self.THROW_FORCE, self.THROW_LIFT)
 			
@@ -192,46 +193,12 @@ return {
 						
 						if part.Parent == workspace.dynamic.bricks and not table.find(hitDescendantsIgnoreList, part) then
 							table.insert(hitDescendantsIgnoreList, part)
+							brickUtils.damageBrick(part, damage)
 							
-							local health: number = part:GetAttribute("Health") or self.BRICK_HEALTH
-							local newHealth: number = health - ( damage * self.BLOCK_DAMAGE_MULTIPLIER )
-							
-							if newHealth <= 0 then
-								--# destroy
-								local partPosition = part.Position
-								part:Destroy()
-								
-								local soundPart = Instance.new("Part")
-								soundPart.Size = Vector3.new(1, 1, 1)
-								soundPart.Transparency = 1
-								soundPart.CanCollide = false
-								soundPart.CanQuery = false
-								soundPart.CanTouch = false
-								soundPart.Position = partPosition
-								soundPart.Anchored = true
-								soundPart.Parent = workspace.dynamic
-								
-								soundUtils.wrap("BrickBreak")
-									:clone()
-									:setParent(soundPart)
-									:autoDestroy()
-									:setRandomPitch(0.1)
-									:play()
-									:onDestroy(function()
-										soundPart:Destroy()
-									end)
-								
-								game.Debris:AddItem(soundPart, 3) --# fallback
-							else
-								--# reduce health
-								part:SetAttribute("Health", newHealth)
-								soundUtils.wrap("BrickDamaged")
-									:clone()
-									:setParent(part)
-									:autoDestroy()
-									:setRandomPitch(0.1)
-									:play()
-							end
+							--[[ VISUAL TEST
+								local h = Instance.new("Highlight", part)
+								game.Debris:AddItem(h, 0.5)
+							]]
 						end
 					end
 				end)

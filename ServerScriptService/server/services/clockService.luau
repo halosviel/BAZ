@@ -49,7 +49,7 @@ return {
 			WARNING/TODO: there are hardcoded values in zombie module that tried to
 			reference these variables.
 		]]
-		self.UPDATE_INTERVAL = 1
+		self.UPDATE_INTERVAL = 0.4
 		self.UPDATE_VALUE = 0.025
 		self.DAY_TIME = 6
 		self.NIGHT_TIME = 18
@@ -87,7 +87,7 @@ return {
 		--# initial time
 		game.Lighting.ClockTime = self.SUNRISE_TIME
 		
-		--[[task.defer(function()
+		task.defer(function()
 			while true do
 				game.Lighting.ClockTime += self.UPDATE_VALUE
 				self.time = math.floor(self:getRawTime())
@@ -122,7 +122,7 @@ return {
 				
 				task.wait(self.UPDATE_INTERVAL)
 			end
-		end)]]
+		end)
 		
 		--# return day data on request
 		events.getDayData.OnServerInvoke = function(player: Player) : types.DayData

@@ -16,6 +16,7 @@ local params = require("@game/ReplicatedFirst/pip/params")
 local try = require("@game/ReplicatedFirst/pip/try")
 
 local chunkService = require("../chunkService")
+local brickUtils = require("@game/ServerScriptService/server/modules/brickUtils")
 
 local ragdollService = require("@game/ReplicatedFirst/shared/libs/ragdollService")
 local stateMachine = require("@game/ReplicatedFirst/shared/utils/stateMachine")
@@ -279,7 +280,7 @@ return class {
 						
 						--# move to target
 						
-						warn("moveto")
+						--warn("moveto")
 						self.humanoid:MoveTo(rootPart.Position)
 					end
 					
@@ -328,11 +329,11 @@ return class {
 									self.humanoid:MoveTo(nextWaypoint.Position)
 								else
 									pathfindingFinished = true
-									warn("path finished")
+									--print("path finished")
 								end
 							end)
 							
-							warn("pathfind")
+							--warn("pathfind")
 							state.maid:GiveTask(pathfindingCon)
 							self.humanoid:MoveTo(waypoints[currentWaypoint].Position)
 						end)
@@ -693,41 +694,54 @@ return class {
 		--# Hit detection
 		do
 			self.maid:GiveTask(self.root.Touched:Connect(function(hit: Instance)
-				if not self.target then
-					return
-				end
-				if not hit:IsDescendantOf(self.target) then
-					return
-				end
 				
-				local humanoid: Humanoid? = self.target:FindFirstChild("Humanoid")
-				if not humanoid then
-					return
-				end
-				
-				if self.humanoid.Health == 0 then
-					return
-				end
-				
-				if os.clock() - self.lastDamage < DAMAGE_INTERVAL then
-					return
-				end
-				self.lastDamage = os.clock()
-				
-				--# deal damage
+				--# rng damage lol
 				local damage: number = math.random(DAMAGE.min, DAMAGE.max)
-				humanoid.Health -= damage
 				
-				--# anim
-				self:_playAnimation("ZombieArmAttack")
-				
-				--# sound
-				soundUtils.wrap("ZombieAttack")
-					:clone()
-					:setParent(self.head)
-					:setRandomPitch(0.2)
-					:autoDestroy()
-					:play()
+				if hit.Parent == workspace.dynamic.bricks then
+					
+					--# Damage brick
+					
+					brickUtils.damageBrick(hit, damage)
+				else
+					
+					--# Damage player
+					
+					if not self.target then
+						return
+					end
+					if not hit:IsDescendantOf(self.target) then
+						return
+					end
+					
+					local humanoid: Humanoid? = self.target:FindFirstChild("Humanoid")
+					if not humanoid then
+						return
+					end
+					
+					if self.humanoid.Health == 0 then
+						return
+					end
+					
+					if os.clock() - self.lastDamage < DAMAGE_INTERVAL then
+						return
+					end
+					self.lastDamage = os.clock()
+					
+					--# deal damage
+					humanoid.Health -= damage
+					
+					--# anim
+					self:_playAnimation("ZombieArmAttack")
+					
+					--# sound
+					soundUtils.wrap("ZombieAttack")
+						:clone()
+						:setParent(self.head)
+						:setRandomPitch(0.2)
+						:autoDestroy()
+						:play()
+				end
 			end))
 		end
 		
