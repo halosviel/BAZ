@@ -49,7 +49,7 @@ return {
 			WARNING/TODO: there are hardcoded values in zombie module that tried to
 			reference these variables.
 		]]
-		self.UPDATE_INTERVAL = 0.4
+		self.UPDATE_INTERVAL = 0.3
 		self.UPDATE_VALUE = 0.025
 		self.DAY_TIME = 6
 		self.NIGHT_TIME = 18
