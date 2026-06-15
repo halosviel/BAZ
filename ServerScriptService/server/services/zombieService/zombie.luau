@@ -456,6 +456,16 @@ return class {
 					self:_stopAnimation("ZombieWalk")
 					self:_stopAnimation("ZombieArmIdle")
 					
+					--# sound
+					if self.head then
+						soundUtils.wrap("ZombieAttack")
+							:clone()
+							:setParent(self.head)
+							:setRandomPitch(0.2)
+							:autoDestroy()
+							:play()
+					end
+					
 					--# ragdoll
 					--[[
 						If the model falls into the void, Died fires and tries to ragdoll
@@ -713,7 +723,7 @@ return class {
 				--# sound
 				soundUtils.wrap("ZombieAttack")
 					:clone()
-					:setParent(self.root)
+					:setParent(self.head)
 					:setRandomPitch(0.2)
 					:autoDestroy()
 					:play()
@@ -739,7 +749,7 @@ return class {
 					local randomSound: Sound = damageSounds[math.random(1, #damageSounds)]
 					soundUtils.wrap("ZombieDamage")
 						:clone()
-						:setParent(self.root)
+						:setParent(self.head)
 						:setRandomPitch(0.2)
 						:autoDestroy()
 						:play()
@@ -761,7 +771,7 @@ return class {
 					local randomSound: Sound = noises[math.random(1, #noises)]
 					soundUtils.wrap(randomSound)
 						:clone()
-						:setParent(self.root)
+						:setParent(self.head)
 						:setRandomPitch(0.2)
 						:autoDestroy()
 						:play()

@@ -166,7 +166,8 @@ return {
 							humanoid.Health -= damage
 							table.insert(hitDescendantsIgnoreList, humanoid.Parent)
 							
-							if humanoid.Health <= 0 then
+							--# only play crit/custom kill sound on player kill
+							if humanoid.Health <= 0 and game.Players:GetPlayerFromCharacter(part.Parent) then
 								soundUtils.wrap("BrickKillDefault")
 									:clone()
 									:setParent(part)
