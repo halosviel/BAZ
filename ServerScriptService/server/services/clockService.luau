@@ -87,7 +87,7 @@ return {
 		--# initial time
 		game.Lighting.ClockTime = self.SUNRISE_TIME
 		
-		task.defer(function()
+		--[[task.defer(function()
 			while true do
 				game.Lighting.ClockTime += self.UPDATE_VALUE
 				self.time = math.floor(self:getRawTime())
@@ -122,7 +122,7 @@ return {
 				
 				task.wait(self.UPDATE_INTERVAL)
 			end
-		end)
+		end)]]
 		
 		--# return day data on request
 		events.getDayData.OnServerInvoke = function(player: Player) : types.DayData

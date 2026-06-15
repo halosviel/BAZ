@@ -32,7 +32,7 @@ type self = {
 	-- [FUNCTIONS]
 	constructor: ( self: self ) -> nil,
 	isRunning: ( self: self ) -> boolean,
-	startSpawning: ( self: self ) -> nil,
+	startSpawning: ( self: self, maxZombieCount: number?, zombieSpawnInterval: number?, spawnInPlayerChunk: boolean? ) -> nil,
 	stopSpawning: ( self: self ) -> nil,
 	ready: ( self: self ) -> nil
 }
@@ -63,8 +63,11 @@ return {
 		If the max number of zombies are reached and a zombie dies/
 		is removed from self.zombies, a new one will be spawned in
 		its place as long as this thread is still running.
+		
+		NOTE: All params are test params  that will override the
+			  config -> for centralised testing.
 	]]
-	startSpawning = function(self: self)
+	startSpawning = function(self: self, maxZombieCount: number?, zombieSpawnInterval: number?, spawnInPlayerChunk: boolean?)
 		if self:isRunning() then
 			console.warn("Request to start zombie spawning dropped: Thread already exists")
 			return
@@ -72,11 +75,11 @@ return {
 		
 		--print("started spawning")
 		self.spawnThread = task.defer(function()
-			while #self.zombies < self.MAX_ZOMBIE_COUNT do
+			while #self.zombies < (maxZombieCount or self.MAX_ZOMBIE_COUNT) do
 				--# spawn zombie
 				globalId += 1
 				
-				local newZombie: zombie.Zombie = zombie.new(globalId)
+				local newZombie: zombie.Zombie = zombie.new(globalId, spawnInPlayerChunk)
 				table.insert(self.zombies, newZombie)
 				
 				--# lifecycle management
@@ -105,8 +108,8 @@ return {
 				end))
 				
 				--# wait
-				local min: number = self.ZOMBIE_SPAWN_INTERVAL[1]
-				local max: number = self.ZOMBIE_SPAWN_INTERVAL[2]
+				local min: number = zombieSpawnInterval or self.ZOMBIE_SPAWN_INTERVAL[1]
+				local max: number = zombieSpawnInterval or self.ZOMBIE_SPAWN_INTERVAL[2]
 				local randomInterval: number = math.random(min * 10, max * 10) / 10
 				--print("spawn", randomInterval)
 				task.wait(randomInterval)
@@ -126,5 +129,7 @@ return {
 	end,
 	
 	ready = function(self: self)
+		--# TESTING
+		self:startSpawning(1, 1, true)
 	end,
 } :: self

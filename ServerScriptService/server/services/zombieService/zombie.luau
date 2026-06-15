@@ -43,6 +43,7 @@ type self = {
 	-- [ENTRIES]
 	id: number,
 	spawned: boolean,
+	spawnInPlayerChunk: boolean?,
 
 	model: Model,
 	head: Part,
@@ -105,10 +106,12 @@ local MAX_BURNING_LIMBS = { min = 1, max = 2 } -- the random number of body part
 -->
 
 return class {
-	new = function(self: self, id: number)
+	--# spawnInPlayerChunk is a test param set in the zombieService test line
+	new = function(self: self, id: number, spawnInPlayerChunk: boolean?)
 		--# data
 		self.id = id
 		self.spawned = false
+		self.spawnInPlayerChunk = spawnInPlayerChunk
 		
 		--# model
 		self.model = game.ReplicatedFirst.assets.models.ZombieRig:Clone()
@@ -276,7 +279,7 @@ return class {
 						
 						--# move to target
 						
-						--warn("moveto")
+						warn("moveto")
 						self.humanoid:MoveTo(rootPart.Position)
 					end
 					
@@ -288,13 +291,13 @@ return class {
 						
 						self.path:ComputeAsync(self.root.Position, rootPart.Position)
 						if self.path.Status == Enum.PathStatus.NoPath then
-							--warn("no path")
+							--print("no path")
 							pathfindingFinished = true
 							return
 						end
 						
 						state.maid:GiveTask(self.path.Blocked:Connect(function()
-							--warn("path blocked")
+							--print("path blocked")
 							pathfindingFinished = true
 						end))
 						
@@ -304,7 +307,7 @@ return class {
 								or waypoints and #waypoints == 0
 								or waypoints and waypoints[1] == nil
 							then
-								--warn("no waypoints")
+								--print("no waypoints")
 								pathfindingFinished = true
 								return
 							end
@@ -312,20 +315,24 @@ return class {
 							local currentWaypoint = 2 --# override to waypoint 2 due to back flickering
 							
 							--# must make new con var; dont give to maid -> cancelling task does not clean connections
-							pathfindingCon = self.humanoid.MoveToFinished:Connect(function()
+							pathfindingCon = self.humanoid.MoveToFinished:Connect(function(reached: boolean)
+								if not reached then
+									--print("moveto failed, stuck?")
+									pathfindingFinished = true
+									return
+								end
+
 								currentWaypoint += 1
 								local nextWaypoint: PathWaypoint? = waypoints[currentWaypoint]
 								if nextWaypoint then
 									self.humanoid:MoveTo(nextWaypoint.Position)
 								else
-									--# path finished
 									pathfindingFinished = true
-									--warn("path finished")
-									return
+									warn("path finished")
 								end
 							end)
 							
-							--warn("pathfind")
+							warn("pathfind")
 							state.maid:GiveTask(pathfindingCon)
 							self.humanoid:MoveTo(waypoints[currentWaypoint].Position)
 						end)
@@ -442,14 +449,6 @@ return class {
 					end
 				end,
 			},
-			burning = {
-				enter = function(state: stateMachine.State & BurningState)
-					
-				end,
-				exit = function(state: stateMachine.State & BurningState)
-					
-				end,
-			},
 			dead = {
 				enter = function(state: stateMachine.State & DeadState)
 					--# stop anims
@@ -508,7 +507,9 @@ return class {
 				task.wait(SPAWN_RETRY_INTERVAL)
 				--print("repeat")
 				
-				local spawnableChunks: { chunkService.Chunk } = chunkService:getChunksWithoutPlayers()
+				local spawnableChunks: { chunkService.Chunk } = self.spawnInPlayerChunk and chunkService:getChunksWithPlayers()
+					or chunkService:getChunksWithoutPlayers()
+				
 				if not spawnableChunks or spawnableChunks and #spawnableChunks == 0 then
 					console.warn("No spawnable chunks found", "Skipping...")
 					continue
