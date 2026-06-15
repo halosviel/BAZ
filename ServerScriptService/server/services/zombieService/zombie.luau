@@ -97,7 +97,6 @@ local SEARCH_FAST_INTERVAL = 0.2 -- search update interval while chasing target
 local DESTROY_DELAY = 3 -- how long the zombie will stay after dying before being deleted
 local DAMAGE = { min = 5, max = 20 } -- randomised per hit
 local DAMAGE_INTERVAL = 1
-local DAMAGE_HIGHLIGHT_LIFETIME = 0.2 -- how long the red highlight lasts for when the zombies takes damage
 local NOISE_INTERVAL = { min = 5, max = 15 } -- how often the zombie will make noises
 local BURN_CHECK_INTERVAL = 1
 local BURN_DAMAGE = 15
@@ -744,13 +743,6 @@ return class {
 						:setRandomPitch(0.2)
 						:autoDestroy()
 						:play()
-					
-					--# highlight
-					if self.model and self.root and self.humanoid then --# void detection
-						local highlight = Instance.new("Highlight")
-						highlight.Parent = self.model
-						game.Debris:AddItem(highlight, DAMAGE_HIGHLIGHT_LIFETIME)
-					end
 				end
 				
 				lastHealth = self.humanoid.Health
