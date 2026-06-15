@@ -4,7 +4,6 @@ _=[[
 TODO
 
  now --------
-- player ragdoll
 - clear builds button
 
 ?? make mobile controls easier? (see babft)
